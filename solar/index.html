@@ -1,0 +1,3300 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SOLARIS NEXUS — NASA-Grade Solar System</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@300;400;600;700&family=JetBrains+Mono:wght@300;400;700&display=swap');
+
+        :root {
+            --c-cyan: #00e5ff;
+            --c-gold: #ffb300;
+            --c-red: #ff1744;
+            --c-green: #00e676;
+            --c-dim: rgba(0, 229, 255, 0.12);
+            --c-border: rgba(0, 229, 255, 0.18);
+            --font-ui: 'Rajdhani', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            background: #000;
+            overflow: hidden;
+            font-family: var(--font-ui);
+            color: #fff;
+            cursor: none;
+        }
+
+        /* ── Custom Cursor ── */
+        #cursor-dot {
+            position: fixed;
+            z-index: 9999;
+            pointer-events: none;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--c-cyan);
+            box-shadow: 0 0 10px var(--c-cyan), 0 0 30px rgba(0, 229, 255, 0.4);
+            transform: translate(-50%, -50%);
+            transition: transform 0.05s;
+        }
+
+        #cursor-ring {
+            position: fixed;
+            z-index: 9998;
+            pointer-events: none;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            border: 1px solid rgba(0, 229, 255, 0.5);
+            transform: translate(-50%, -50%);
+            transition: transform 0.12s ease, width 0.2s, height 0.2s, opacity 0.2s;
+        }
+
+        /* ── Canvas ── */
+        #main-canvas {
+            position: fixed;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        /* ── Intro Screen ── */
+        #intro-screen {
+            position: fixed;
+            inset: 0;
+            z-index: 500;
+            background: radial-gradient(ellipse at center, #000d1a 0%, #000 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 0;
+        }
+
+        .intro-stars {
+            position: absolute;
+            inset: 0;
+            background-image:
+                radial-gradient(1px 1px at 10% 20%, rgba(255, 255, 255, 0.8) 0%, transparent 100%),
+                radial-gradient(1px 1px at 30% 60%, rgba(255, 255, 255, 0.6) 0%, transparent 100%),
+                radial-gradient(1px 1px at 70% 15%, rgba(255, 255, 255, 0.9) 0%, transparent 100%),
+                radial-gradient(1px 1px at 85% 75%, rgba(255, 255, 255, 0.7) 0%, transparent 100%),
+                radial-gradient(2px 2px at 50% 40%, rgba(0, 229, 255, 0.6) 0%, transparent 100%);
+            background-size: 200px 200px, 300px 400px, 250px 300px, 400px 200px, 100px 100px;
+            animation: starPan 60s linear infinite;
+        }
+
+        @keyframes starPan {
+            from {
+                background-position: 0 0, 0 0, 0 0, 0 0, 0 0
+            }
+
+            to {
+                background-position: 200px 0, 300px 0, 250px 0, 400px 0, 100px 0
+            }
+        }
+
+        .intro-logo {
+            font-family: var(--font-ui);
+            font-weight: 700;
+            font-size: clamp(52px, 10vw, 110px);
+            letter-spacing: 0.25em;
+            color: transparent;
+            background: linear-gradient(135deg, #fff 20%, var(--c-cyan) 50%, #fff 80%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            text-shadow: none;
+            filter: drop-shadow(0 0 40px rgba(0, 229, 255, 0.5));
+            animation: logoReveal 2s ease forwards;
+            opacity: 0;
+        }
+
+        @keyframes logoReveal {
+            0% {
+                opacity: 0;
+                transform: scale(0.8) translateY(20px);
+                letter-spacing: 0.5em
+            }
+
+            60% {
+                opacity: 1;
+                transform: scale(1.02) translateY(0)
+            }
+
+            100% {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+                letter-spacing: 0.25em
+            }
+        }
+
+        .intro-sub {
+            font-family: var(--font-mono);
+            font-weight: 300;
+            font-size: clamp(9px, 1.5vw, 13px);
+            letter-spacing: 0.4em;
+            color: rgba(255, 255, 255, 0.35);
+            margin-top: 10px;
+            margin-bottom: 60px;
+            animation: fadeUp 2s 0.5s ease forwards;
+            opacity: 0;
+        }
+
+        @keyframes fadeUp {
+            from {
+                opacity: 0;
+                transform: translateY(10px)
+            }
+
+            to {
+                opacity: 1;
+                transform: none
+            }
+        }
+
+        .intro-loader {
+            width: min(400px, 80vw);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            animation: fadeUp 2s 1s ease forwards;
+            opacity: 0;
+        }
+
+        .loader-bar-bg {
+            width: 100%;
+            height: 2px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .loader-bar-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--c-cyan), var(--c-gold));
+            box-shadow: 0 0 12px var(--c-cyan);
+            transition: width 0.3s ease;
+            border-radius: 2px;
+        }
+
+        .loader-text {
+            font-family: var(--font-mono);
+            font-size: 10px;
+            color: rgba(255, 255, 255, 0.3);
+            letter-spacing: 0.2em;
+            text-align: center;
+        }
+
+        .intro-enter {
+            margin-top: 40px;
+            font-family: var(--font-ui);
+            font-weight: 600;
+            font-size: 13px;
+            letter-spacing: 0.4em;
+            text-transform: uppercase;
+            padding: 14px 52px;
+            border: 1px solid var(--c-cyan);
+            background: transparent;
+            color: var(--c-cyan);
+            cursor: pointer;
+            transition: all 0.3s;
+            display: none;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .intro-enter::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: var(--c-cyan);
+            transform: translateX(-101%);
+            transition: transform 0.3s ease;
+        }
+
+        .intro-enter:hover::before {
+            transform: translateX(0)
+        }
+
+        .intro-enter:hover {
+            color: #000;
+            box-shadow: 0 0 30px rgba(0, 229, 255, 0.5)
+        }
+
+        .intro-enter span {
+            position: relative;
+            z-index: 1
+        }
+
+        /* ── HUD ── */
+        #hud {
+            position: fixed;
+            inset: 0;
+            z-index: 100;
+            pointer-events: none;
+        }
+
+        /* Top Bar */
+        #topbar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 52px;
+            background: linear-gradient(to bottom, rgba(0, 5, 15, 0.97), rgba(0, 5, 15, 0));
+            border-bottom: 1px solid rgba(0, 229, 255, 0.06);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+        }
+
+        .topbar-logo {
+            font-weight: 700;
+            font-size: 20px;
+            letter-spacing: 0.3em;
+            color: var(--c-cyan);
+            text-shadow: 0 0 20px rgba(0, 229, 255, 0.7), 0 0 60px rgba(0, 229, 255, 0.2);
+        }
+
+        .topbar-logo span {
+            color: rgba(255, 255, 255, 0.4);
+            font-weight: 300
+        }
+
+        .topbar-stats {
+            display: flex;
+            gap: 28px;
+            align-items: center;
+        }
+
+        .hud-stat {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+        }
+
+        .hud-stat-label {
+            font-family: var(--font-mono);
+            font-size: 8px;
+            color: rgba(255, 255, 255, 0.25);
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+        }
+
+        .hud-stat-val {
+            font-family: var(--font-mono);
+            font-size: 14px;
+            color: var(--c-cyan);
+            line-height: 1;
+        }
+
+        #fps-counter {
+            color: var(--c-green);
+        }
+
+        #sim-status-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--c-green);
+            box-shadow: 0 0 8px var(--c-green);
+            display: inline-block;
+            margin-right: 7px;
+            animation: pulse 2s infinite;
+        }
+
+        #sim-status-dot.paused {
+            background: var(--c-gold);
+            box-shadow: 0 0 8px var(--c-gold);
+            animation: none
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1
+            }
+
+            50% {
+                opacity: 0.4
+            }
+        }
+
+        /* Left Side Panel */
+        #left-panel {
+            position: absolute;
+            left: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            pointer-events: all;
+        }
+
+        .hud-btn {
+            background: rgba(0, 5, 15, 0.7);
+            border: 1px solid var(--c-border);
+            color: rgba(255, 255, 255, 0.5);
+            font-family: var(--font-mono);
+            font-size: 9px;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            padding: 9px 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-radius: 2px;
+            backdrop-filter: blur(8px);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-width: 140px;
+        }
+
+        .hud-btn-icon {
+            font-size: 14px;
+            opacity: 0.7;
+        }
+
+        .hud-btn:hover,
+        .hud-btn.active {
+            border-color: var(--c-cyan);
+            color: var(--c-cyan);
+            background: rgba(0, 229, 255, 0.07);
+            box-shadow: 0 0 14px rgba(0, 229, 255, 0.12), inset 0 0 14px rgba(0, 229, 255, 0.04);
+        }
+
+        .hud-btn.active .hud-btn-icon {
+            opacity: 1;
+        }
+
+        /* Speed Control */
+        #speed-panel {
+            position: absolute;
+            bottom: 24px;
+            left: 20px;
+            pointer-events: all;
+            background: rgba(0, 5, 15, 0.75);
+            border: 1px solid var(--c-border);
+            border-radius: 3px;
+            padding: 16px 18px;
+            backdrop-filter: blur(10px);
+            width: 200px;
+        }
+
+        .panel-title {
+            font-family: var(--font-mono);
+            font-size: 8px;
+            letter-spacing: 0.3em;
+            color: rgba(255, 255, 255, 0.25);
+            text-transform: uppercase;
+            margin-bottom: 12px;
+        }
+
+        #speed-value {
+            font-family: var(--font-mono);
+            font-size: 22px;
+            color: var(--c-cyan);
+            text-align: center;
+            margin-bottom: 10px;
+            text-shadow: 0 0 16px rgba(0, 229, 255, 0.5);
+        }
+
+        #speed-slider {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 2px;
+            background: rgba(255, 255, 255, 0.1);
+            outline: none;
+            border-radius: 1px;
+            cursor: pointer;
+        }
+
+        #speed-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--c-cyan);
+            box-shadow: 0 0 8px var(--c-cyan);
+            cursor: pointer;
+        }
+
+        #speed-marks {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 6px;
+        }
+
+        .speed-mark {
+            font-family: var(--font-mono);
+            font-size: 7px;
+            color: rgba(255, 255, 255, 0.2);
+        }
+
+        /* Planet Info Panel */
+        #planet-panel {
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%) translateX(30px);
+            width: 270px;
+            background: rgba(0, 5, 15, 0.88);
+            border: 1px solid rgba(0, 229, 255, 0.2);
+            border-radius: 3px;
+            padding: 22px;
+            pointer-events: all;
+            backdrop-filter: blur(16px);
+            opacity: 0;
+            transition: opacity 0.4s, transform 0.4s;
+        }
+
+        #planet-panel.open {
+            opacity: 1;
+            transform: translateY(-50%) translateX(0);
+        }
+
+        .planet-panel-close {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: none;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: rgba(255, 255, 255, 0.4);
+            font-size: 10px;
+            width: 22px;
+            height: 22px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            border-radius: 2px;
+        }
+
+        .planet-panel-close:hover {
+            border-color: var(--c-red);
+            color: var(--c-red)
+        }
+
+        #pp-name {
+            font-family: var(--font-ui);
+            font-weight: 700;
+            font-size: 24px;
+            letter-spacing: 0.15em;
+            color: var(--c-gold);
+            margin-bottom: 3px;
+        }
+
+        #pp-type {
+            font-family: var(--font-mono);
+            font-size: 9px;
+            color: rgba(255, 255, 255, 0.3);
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            margin-bottom: 18px;
+        }
+
+        .pp-divider {
+            height: 1px;
+            background: rgba(255, 255, 255, 0.06);
+            margin-bottom: 14px;
+        }
+
+        .pp-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 9px;
+        }
+
+        .pp-key {
+            font-family: var(--font-mono);
+            font-size: 9px;
+            color: rgba(255, 255, 255, 0.3);
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+        }
+
+        .pp-val {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            color: #fff;
+        }
+
+        #pp-desc {
+            font-size: 11px;
+            line-height: 1.75;
+            color: rgba(255, 255, 255, 0.45);
+            margin-top: 14px;
+            font-family: var(--font-ui);
+            font-weight: 300;
+        }
+
+        /* Orbit indicator bar */
+        .pp-orbit-bar {
+            height: 3px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 2px;
+            margin-top: 14px;
+            overflow: hidden;
+        }
+
+        .pp-orbit-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--c-cyan), var(--c-gold));
+            box-shadow: 0 0 6px var(--c-cyan);
+            animation: orbitPulse 2s ease-in-out infinite;
+        }
+
+        @keyframes orbitPulse {
+
+            0%,
+            100% {
+                opacity: 0.7
+            }
+
+            50% {
+                opacity: 1
+            }
+        }
+
+        /* Hand Tracking Panel */
+        #hand-panel {
+            position: absolute;
+            bottom: 24px;
+            right: 20px;
+            pointer-events: all;
+        }
+
+        #webcam-wrap {
+            position: relative;
+            width: 180px;
+            height: 130px;
+            border: 1px solid rgba(0, 229, 255, 0.2);
+            border-radius: 3px;
+            overflow: hidden;
+            background: #000;
+        }
+
+        #webcam-vid {
+            width: 180px;
+            height: 130px;
+            object-fit: cover;
+            transform: scaleX(-1);
+            opacity: 0.65;
+            display: block;
+        }
+
+        #hand-canvas-overlay {
+            position: absolute;
+            inset: 0;
+            width: 180px;
+            height: 130px;
+            transform: scaleX(-1);
+        }
+
+        #gesture-readout {
+            font-family: var(--font-mono);
+            font-size: 10px;
+            letter-spacing: 0.15em;
+            color: var(--c-cyan);
+            text-align: center;
+            margin-top: 7px;
+            min-height: 15px;
+            text-shadow: 0 0 10px rgba(0, 229, 255, 0.5);
+        }
+
+        #hand-confidence {
+            height: 2px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 1px;
+            margin-top: 5px;
+            overflow: hidden;
+        }
+
+        #hand-confidence-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--c-green), var(--c-cyan));
+            transition: width 0.15s;
+            border-radius: 1px;
+        }
+
+        #hand-toggle-btn {
+            width: 100%;
+            margin-top: 8px;
+            font-family: var(--font-mono);
+            font-size: 9px;
+            letter-spacing: 0.2em;
+            padding: 8px;
+            background: rgba(0, 5, 15, 0.7);
+            border: 1px solid var(--c-border);
+            color: rgba(0, 229, 255, 0.7);
+            cursor: pointer;
+            transition: all 0.2s;
+            border-radius: 2px;
+        }
+
+        #hand-toggle-btn:hover {
+            background: rgba(0, 229, 255, 0.08);
+            border-color: var(--c-cyan)
+        }
+
+        /* Gesture Hint Panel */
+        #gesture-hints {
+            position: absolute;
+            bottom: 180px;
+            right: 20px;
+            font-family: var(--font-mono);
+            font-size: 9px;
+            color: rgba(255, 255, 255, 0.25);
+            line-height: 2.2;
+            letter-spacing: 0.1em;
+            pointer-events: none;
+            text-align: right;
+        }
+
+        .g-hint-active {
+            color: var(--c-cyan) !important;
+            text-shadow: 0 0 8px rgba(0, 229, 255, 0.5);
+        }
+
+        /* Bottom center time display */
+        #time-display {
+            position: absolute;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            text-align: center;
+            pointer-events: none;
+        }
+
+        #sim-date {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.2);
+            letter-spacing: 0.2em;
+        }
+
+        /* Planet labels (billboard) */
+        .planet-label {
+            position: fixed;
+            pointer-events: none;
+            font-family: var(--font-mono);
+            font-size: 9px;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.45);
+            transform: translateX(-50%);
+            white-space: nowrap;
+        }
+
+        /* Focus ring */
+        #focus-ring {
+            position: fixed;
+            border-radius: 50%;
+            border: 1px solid rgba(255, 179, 0, 0.5);
+            box-shadow: 0 0 16px rgba(255, 179, 0, 0.2), inset 0 0 16px rgba(255, 179, 0, 0.05);
+            pointer-events: none;
+            z-index: 90;
+            transform: translate(-50%, -50%);
+            display: none;
+        }
+
+        /* Notification toast */
+        #toast {
+            position: fixed;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-family: var(--font-mono);
+            font-size: 10px;
+            letter-spacing: 0.2em;
+            padding: 10px 24px;
+            background: rgba(0, 5, 15, 0.9);
+            border: 1px solid var(--c-cyan);
+            color: var(--c-cyan);
+            border-radius: 2px;
+            z-index: 200;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+            text-transform: uppercase;
+        }
+
+        #toast.show {
+            opacity: 1
+        }
+
+        /* Scanline overlay */
+        #scanlines {
+            position: fixed;
+            inset: 0;
+            z-index: 99;
+            pointer-events: none;
+            background: repeating-linear-gradient(to bottom,
+                    transparent 0px, transparent 3px,
+                    rgba(0, 0, 0, 0.015) 3px, rgba(0, 0, 0, 0.015) 4px);
+            opacity: 0.5;
+        }
+
+        /* Film grain (CSS noise) */
+        #grain {
+            position: fixed;
+            inset: 0;
+            z-index: 98;
+            pointer-events: none;
+            opacity: 0.025;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+            background-repeat: repeat;
+            background-size: 200px 200px;
+            animation: grainAnim 0.15s steps(2) infinite;
+        }
+
+        @keyframes grainAnim {
+            0% {
+                background-position: 0 0
+            }
+
+            50% {
+                background-position: -50px 30px
+            }
+
+            100% {
+                background-position: 20px -40px
+            }
+        }
+
+        /* Supernova flash animation */
+        @keyframes supernovaFlash {
+            0% {
+                opacity: 0
+            }
+
+            15% {
+                opacity: 1
+            }
+
+            60% {
+                opacity: 0.6
+            }
+
+            100% {
+                opacity: 0
+            }
+        }
+
+        @keyframes shockwaveExpand {
+            from {
+                width: 0;
+                height: 0;
+                opacity: 1
+            }
+
+            to {
+                width: 200vmax;
+                height: 200vmax;
+                opacity: 0
+            }
+        }
+
+        @keyframes pulsarBeam {
+
+            0%,
+            100% {
+                opacity: 0.3
+            }
+
+            50% {
+                opacity: 1
+            }
+        }
+
+        /* Fist charge pulse */
+        @keyframes chargePulse {
+
+            0%,
+            100% {
+                box-shadow: 0 0 10px rgba(255, 80, 0, 0.6)
+            }
+
+            50% {
+                box-shadow: 0 0 30px rgba(255, 150, 0, 1)
+            }
+        }
+
+        /* Timeline phase label glow */
+        @keyframes phaseGlow {
+
+            0%,
+            100% {
+                filter: drop-shadow(0 0 10px currentColor)
+            }
+
+            50% {
+                filter: drop-shadow(0 0 40px currentColor)
+            }
+        }
+
+        #tl-phase {
+            animation: phaseGlow 2s ease-in-out infinite;
+        }
+
+        #timewarp-speed {
+            animation: phaseGlow 1s ease-in-out infinite;
+        }
+
+        /* Gesture hints */
+        .g-hint-active {
+            color: var(--c-cyan) !important;
+            text-shadow: 0 0 8px rgba(0, 229, 255, 0.6);
+        }
+
+        #gh-fist {
+            color: rgba(255, 100, 0, 0.6);
+            transition: color 0.2s;
+        }
+
+        #gh-fist.g-hint-active {
+            color: #ff6600 !important;
+            text-shadow: 0 0 12px rgba(255, 100, 0, 0.8);
+        }
+
+        #gh-point {
+            color: rgba(255, 180, 0, 0.5);
+            transition: color 0.2s;
+        }
+
+        #gh-point.g-hint-active {
+            color: #ffaa00 !important;
+            text-shadow: 0 0 12px rgba(255, 180, 0, 0.8);
+        }
+
+        position:fixed;
+        top:50%;
+        left:50%;
+        transform:translate(-50%, -50%);
+        background:rgba(0, 5, 15, 0.96);
+        border:1px solid var(--c-border);
+        padding:32px;
+        width:360px;
+        z-index:400;
+        border-radius:4px;
+        backdrop-filter:blur(20px);
+        display:none;
+        }
+
+        #shortcuts h3 {
+            font-family: var(--font-ui);
+            font-weight: 600;
+            font-size: 16px;
+            letter-spacing: 0.3em;
+            color: var(--c-cyan);
+            margin-bottom: 20px;
+            text-transform: uppercase;
+        }
+
+        .shortcut-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .shortcut-key {
+            font-family: var(--font-mono);
+            font-size: 10px;
+            padding: 3px 8px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 2px;
+            color: rgba(255, 255, 255, 0.6);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .shortcut-desc {
+            font-family: var(--font-mono);
+            font-size: 10px;
+            color: rgba(255, 255, 255, 0.35);
+            letter-spacing: 0.1em;
+        }
+
+        .shortcuts-close {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background: none;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: rgba(255, 255, 255, 0.4);
+            font-size: 12px;
+            width: 26px;
+            height: 26px;
+            cursor: pointer;
+            border-radius: 2px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .shortcuts-close:hover {
+            border-color: var(--c-red);
+            color: var(--c-red)
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="cursor-dot"></div>
+    <div id="cursor-ring"></div>
+    <div id="scanlines"></div>
+    <div id="grain"></div>
+
+    <!-- ── INTRO SCREEN ── -->
+    <div id="intro-screen">
+        <div class="intro-stars"></div>
+        <div class="intro-logo">SOLARIS</div>
+        <div class="intro-sub">NEXUS · SOLAR SYSTEM SIMULATION · v3.0</div>
+        <div class="intro-loader">
+            <div class="loader-bar-bg">
+                <div class="loader-bar-fill" id="loader-fill"></div>
+            </div>
+            <div class="loader-text" id="loader-text">Initializing WebGL2 context...</div>
+        </div>
+        <button class="intro-enter" id="intro-enter-btn"><span>⬡ ENTER THE COSMOS</span></button>
+    </div>
+
+    <!-- ── MAIN CANVAS ── -->
+    <canvas id="main-canvas"></canvas>
+
+    <!-- ── HUD ── -->
+    <div id="hud">
+
+        <!-- Top Bar -->
+        <div id="topbar">
+            <div class="topbar-logo">SOL<span>ARIS</span> <span
+                    style="font-size:10px;letter-spacing:0.2em;color:rgba(255,255,255,0.2)">NEXUS</span></div>
+            <div class="topbar-stats">
+                <div class="hud-stat">
+                    <span class="hud-stat-label">SIM STATUS</span>
+                    <span class="hud-stat-val"><span id="sim-status-dot"></span><span
+                            id="sim-status-text">RUNNING</span></span>
+                </div>
+                <div class="hud-stat">
+                    <span class="hud-stat-label">FPS</span>
+                    <span class="hud-stat-val" id="fps-counter">60</span>
+                </div>
+                <div class="hud-stat">
+                    <span class="hud-stat-label">BODIES</span>
+                    <span class="hud-stat-val">9</span>
+                </div>
+                <div class="hud-stat">
+                    <span class="hud-stat-label">HAND TRACK</span>
+                    <span class="hud-stat-val" id="hand-status">OFFLINE</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Left Panel Controls -->
+        <div id="left-panel">
+            <button class="hud-btn active" id="btn-orbits" onclick="toggleFeature('orbits')">
+                <span class="hud-btn-icon">◎</span><span>ORBIT PATHS</span>
+            </button>
+            <button class="hud-btn" id="btn-labels" onclick="toggleFeature('labels')">
+                <span class="hud-btn-icon">⊠</span><span>LABELS</span>
+            </button>
+            <button class="hud-btn" id="btn-postfx" onclick="toggleFeature('postfx')">
+                <span class="hud-btn-icon">✦</span><span>POST FX</span>
+            </button>
+            <button class="hud-btn" id="btn-asteroids" onclick="toggleFeature('asteroids')">
+                <span class="hud-btn-icon">⋯</span><span>ASTEROID BELT</span>
+            </button>
+            <button class="hud-btn" id="btn-scale" onclick="toggleFeature('scale')">
+                <span class="hud-btn-icon">⊕</span><span>REAL SCALE</span>
+            </button>
+            <button class="hud-btn" id="btn-pause" onclick="togglePause()">
+                <span class="hud-btn-icon">▶</span><span id="btn-pause-text">PAUSE SIM</span>
+            </button>
+            <button class="hud-btn" id="btn-help" onclick="toggleShortcuts()">
+                <span class="hud-btn-icon">?</span><span>CONTROLS</span>
+            </button>
+        </div>
+
+        <!-- Speed Panel -->
+        <div id="speed-panel">
+            <div class="panel-title">⏱ TIME SCALE</div>
+            <div id="speed-value">1.0×</div>
+            <input type="range" id="speed-slider" min="0" max="100" value="25">
+            <div id="speed-marks">
+                <span class="speed-mark">0.1×</span>
+                <span class="speed-mark">10×</span>
+                <span class="speed-mark">100×</span>
+                <span class="speed-mark">1K×</span>
+            </div>
+        </div>
+
+        <!-- Planet Info Panel -->
+        <div id="planet-panel">
+            <button class="planet-panel-close" onclick="closePlanetPanel()">✕</button>
+            <div id="pp-name">EARTH</div>
+            <div id="pp-type">TERRESTRIAL PLANET</div>
+            <div class="pp-divider"></div>
+            <div class="pp-row"><span class="pp-key">Mass</span><span class="pp-val" id="pp-mass">—</span></div>
+            <div class="pp-row"><span class="pp-key">Radius</span><span class="pp-val" id="pp-radius">—</span></div>
+            <div class="pp-row"><span class="pp-key">Orbit Period</span><span class="pp-val" id="pp-period">—</span>
+            </div>
+            <div class="pp-row"><span class="pp-key">Distance</span><span class="pp-val" id="pp-dist">—</span></div>
+            <div class="pp-row"><span class="pp-key">Temperature</span><span class="pp-val" id="pp-temp">—</span></div>
+            <div class="pp-row"><span class="pp-key">Moons</span><span class="pp-val" id="pp-moons">—</span></div>
+            <div class="pp-row"><span class="pp-key">Gravity</span><span class="pp-val" id="pp-gravity">—</span></div>
+            <div class="pp-orbit-bar">
+                <div class="pp-orbit-fill" id="pp-orbit-fill" style="width:0%"></div>
+            </div>
+            <div id="pp-desc">Click a planet to view data.</div>
+        </div>
+
+        <!-- Gesture hints -->
+        <div id="gesture-hints">
+            <div id="gh-lr">🖐 ← → &nbsp;ROTATE VIEW</div>
+            <div id="gh-ud">🖐 ↑ ↓ &nbsp;ZOOM IN/OUT</div>
+            <div id="gh-pinch">🤏 &nbsp;PAUSE/PLAY</div>
+            <div id="gh-fist">✊ &nbsp;SUPERNOVA!</div>
+            <div id="gh-point">☞ &nbsp;TIME WARP</div>
+            <div id="gh-peace">✌ &nbsp;TOGGLE FX</div>
+        </div>
+
+        <!-- Live hand cursor — big dot that follows palm on screen -->
+        <div id="hand-cursor" style="
+    display:none;position:fixed;z-index:150;pointer-events:none;
+    width:44px;height:44px;border-radius:50%;
+    border:2px solid rgba(0,229,255,0.8);
+    box-shadow:0 0 24px rgba(0,229,255,0.45), 0 0 60px rgba(0,229,255,0.15);
+    transform:translate(-50%,-50%);
+  ">
+            <div id="hand-cursor-dot" style="
+    position:absolute;top:50%;left:50%;
+    width:8px;height:8px;border-radius:50%;
+    background:#00e5ff;transform:translate(-50%,-50%);
+    box-shadow:0 0 8px #00e5ff;
+  "></div>
+        </div>
+
+        <!-- Supernova overlay -->
+        <div id="supernova-overlay" style="display:none;position:fixed;inset:0;z-index:300;pointer-events:none;">
+            <div id="supernova-flash"
+                style="position:absolute;inset:0;background:radial-gradient(circle,#ffffff,#ffcc00,#ff4400,transparent);opacity:0;transition:opacity 0.1s;">
+            </div>
+            <div id="supernova-shockwave"
+                style="position:absolute;top:50%;left:50%;width:0;height:0;border-radius:50%;border:4px solid rgba(255,200,100,0.8);transform:translate(-50%,-50%);box-shadow:0 0 60px rgba(255,150,0,0.6);transition:none;">
+            </div>
+        </div>
+
+        <!-- Timeline HUD (post-explosion) -->
+        <div id="timeline-hud"
+            style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:250;pointer-events:none;text-align:center;">
+            <div id="tl-phase"
+                style="font-family:var(--font-ui);font-weight:700;font-size:clamp(18px,4vw,42px);letter-spacing:0.2em;color:#ffaa00;text-shadow:0 0 40px rgba(255,160,0,0.8);margin-bottom:8px;">
+            </div>
+            <div id="tl-time"
+                style="font-family:var(--font-mono);font-size:clamp(11px,2vw,16px);letter-spacing:0.3em;color:rgba(255,200,100,0.7);">
+            </div>
+            <div id="tl-desc"
+                style="font-family:var(--font-ui);font-size:clamp(10px,1.5vw,14px);letter-spacing:0.1em;color:rgba(255,255,255,0.45);margin-top:10px;max-width:500px;line-height:1.7;">
+            </div>
+        </div>
+
+        <!-- Fist charge meter -->
+        <div id="fist-charge-wrap"
+            style="display:none;position:fixed;bottom:200px;left:50%;transform:translateX(-50%);z-index:250;pointer-events:none;text-align:center;width:220px;">
+            <div
+                style="font-family:var(--font-mono);font-size:9px;letter-spacing:0.25em;color:rgba(255,80,0,0.8);margin-bottom:6px;">
+                ✊ HOLD TO TRIGGER SUPERNOVA</div>
+            <div style="height:3px;background:rgba(255,255,255,0.08);border-radius:2px;overflow:hidden;">
+                <div id="fist-charge-bar"
+                    style="height:100%;width:0%;background:linear-gradient(90deg,#ff4400,#ffcc00,#ffffff);box-shadow:0 0 10px #ff4400;border-radius:2px;transition:width 0.05s linear;">
+                </div>
+            </div>
+            <div id="fist-pct"
+                style="font-family:var(--font-mono);font-size:9px;color:rgba(255,100,0,0.6);margin-top:4px;">0%</div>
+        </div>
+
+        <!-- Point finger speed warp indicator -->
+        <div id="timewarp-hud"
+            style="display:none;position:fixed;top:70px;left:50%;transform:translateX(-50%);z-index:250;pointer-events:none;text-align:center;">
+            <div style="font-family:var(--font-mono);font-size:10px;letter-spacing:0.3em;color:#ff6600;">☞ TIME WARP
+                ACTIVE</div>
+            <div id="timewarp-speed"
+                style="font-family:var(--font-ui);font-weight:700;font-size:36px;color:#ffaa00;text-shadow:0 0 30px rgba(255,160,0,0.8);">
+            </div>
+        </div>
+
+        <!-- Hand Panel -->
+        <div id="hand-panel">
+            <div id="webcam-wrap">
+                <video id="webcam-vid" autoplay playsinline muted></video>
+                <canvas id="hand-canvas-overlay"></canvas>
+            </div>
+            <div id="gesture-readout">NO GESTURE</div>
+            <div id="hand-confidence">
+                <div id="hand-confidence-fill"></div>
+            </div>
+            <button id="hand-toggle-btn" onclick="toggleHandTracking()">⊡ ENABLE HAND TRACKING</button>
+        </div>
+
+        <!-- Time display bottom center -->
+        <div id="time-display">
+            <div id="sim-date">SIM TIME: YEAR 1 · DAY 0</div>
+        </div>
+
+        <!-- Planet Labels (populated by JS) -->
+        <div id="label-container"></div>
+
+    </div>
+
+    <!-- Focus Ring -->
+    <div id="focus-ring"></div>
+
+    <!-- Toast notification -->
+    <div id="toast"></div>
+
+    <!-- Keyboard shortcuts overlay -->
+    <div id="shortcuts">
+        <h3>Keyboard Controls</h3>
+        <button class="shortcuts-close" onclick="toggleShortcuts()">✕</button>
+        <div class="shortcut-row"><span class="shortcut-key">← →</span><span class="shortcut-desc">Rotate camera</span>
+        </div>
+        <div class="shortcut-row"><span class="shortcut-key">↑ ↓</span><span class="shortcut-desc">Zoom in / out</span>
+        </div>
+        <div class="shortcut-row"><span class="shortcut-key">SPACE</span><span class="shortcut-desc">Pause /
+                Resume</span></div>
+        <div class="shortcut-row"><span class="shortcut-key">R</span><span class="shortcut-desc">Reset camera</span>
+        </div>
+        <div class="shortcut-row"><span class="shortcut-key">T</span><span class="shortcut-desc">Top-down view</span>
+        </div>
+        <div class="shortcut-row"><span class="shortcut-key">O</span><span class="shortcut-desc">Toggle orbit
+                paths</span></div>
+        <div class="shortcut-row"><span class="shortcut-key">L</span><span class="shortcut-desc">Toggle labels</span>
+        </div>
+        <div class="shortcut-row"><span class="shortcut-key">P</span><span class="shortcut-desc">Toggle post FX</span>
+        </div>
+        <div class="shortcut-row"><span class="shortcut-key">1-8</span><span class="shortcut-desc">Focus on
+                planet</span></div>
+        <div class="shortcut-row"><span class="shortcut-key">ESC</span><span class="shortcut-desc">Deselect /
+                close</span></div>
+        <div style="margin-top:14px;border-top:1px solid rgba(255,255,255,0.06);padding-top:12px">
+            <div
+                style="font-family:var(--font-mono);font-size:8px;color:rgba(255,150,0,0.6);letter-spacing:0.2em;margin-bottom:8px;">
+                ✋ HAND GESTURES</div>
+            <div class="shortcut-row"><span class="shortcut-key">🖐</span><span class="shortcut-desc">Move hand →
+                    rotate/zoom</span></div>
+            <div class="shortcut-row"><span class="shortcut-key">✊</span><span class="shortcut-desc">Hold 2.5s →
+                    SUPERNOVA!</span></div>
+            <div class="shortcut-row"><span class="shortcut-key">☞</span><span class="shortcut-desc">Point right → time
+                    warp</span></div>
+            <div class="shortcut-row"><span class="shortcut-key">🤏</span><span class="shortcut-desc">Pinch →
+                    pause/play</span></div>
+            <div class="shortcut-row"><span class="shortcut-key">✌</span><span class="shortcut-desc">Peace → toggle
+                    FX</span></div>
+        </div>
+        <div
+            style="margin-top:10px;font-family:var(--font-mono);font-size:8px;color:rgba(255,255,255,0.2);letter-spacing:0.2em;">
+            DRAG: ROTATE · SCROLL: ZOOM · CLICK: SELECT</div>
+    </div>
+
+    <!-- ── THREE.JS & ENGINE ── -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        /* ═══════════════════════════════════════════════════════════════════════
+           SOLARIS NEXUS — Advanced Solar System Engine
+           Senior Graphics Engineer Implementation — Full Production Build
+           ═══════════════════════════════════════════════════════════════════════ */
+
+        'use strict';
+
+        // ─────────────────────────────────────────────────────────────
+        //  PLANET DATABASE
+        // ─────────────────────────────────────────────────────────────
+        const PLANETS = [
+            {
+                id: 0, name: 'Mercury', type: 'Terrestrial Planet',
+                color: '#b0a898', emissive: '#1a1410', cloudColor: null,
+                r: 0.4, orbitR: 9, ecc: 0.206, speed: 4.74, rotSpeed: 0.017, tilt: 0.034,
+                mass: '3.30 × 10²³ kg', radius: '2,439 km', period: '88 days',
+                dist: '57.9 M km', temp: '-180°C / 430°C', moons: '0', gravity: '3.7 m/s²',
+                orbitFrac: 1.0, roughness: 0.95, metalness: 0.1,
+                desc: 'The smallest planet — extreme temperature swings, no atmosphere, heavily cratered surface from billions of years of impacts.',
+                glowColor: '#806040', hasClouds: false, hasRings: false, isGas: false
+            },
+            {
+                id: 1, name: 'Venus', type: 'Terrestrial Planet',
+                color: '#e8c97a', emissive: '#201500', cloudColor: '#f0e0a0',
+                r: 0.95, orbitR: 15, ecc: 0.007, speed: 3.50, rotSpeed: -0.004, tilt: 177.4,
+                mass: '4.87 × 10²⁴ kg', radius: '6,052 km', period: '225 days',
+                dist: '108 M km', temp: '464°C avg', moons: '0', gravity: '8.9 m/s²',
+                orbitFrac: 0.95, roughness: 0.9, metalness: 0.0,
+                desc: 'Hottest planet. Dense CO₂ atmosphere creates extreme greenhouse effect. Surface pressure 92× Earth\'s.',
+                glowColor: '#c8a030', hasClouds: true, hasRings: false, isGas: false
+            },
+            {
+                id: 2, name: 'Earth', type: 'Terrestrial Planet',
+                color: '#4a9fd4', emissive: '#001520', cloudColor: '#e8f4ff',
+                r: 1.0, orbitR: 22, ecc: 0.017, speed: 2.98, rotSpeed: 0.5, tilt: 23.4,
+                mass: '5.97 × 10²⁴ kg', radius: '6,371 km', period: '365 days',
+                dist: '149.6 M km', temp: '15°C avg', moons: '1', gravity: '9.8 m/s²',
+                orbitFrac: 0.9, roughness: 0.6, metalness: 0.0,
+                desc: 'Our pale blue dot. The only known world harboring life. 71% liquid water surface, complex biosphere.',
+                glowColor: '#2060c0', hasClouds: true, hasRings: false, isGas: false, hasAtmo: true
+            },
+            {
+                id: 3, name: 'Mars', type: 'Terrestrial Planet',
+                color: '#c1440e', emissive: '#200500', cloudColor: null,
+                r: 0.53, orbitR: 31, ecc: 0.093, speed: 2.41, rotSpeed: 0.48, tilt: 25.2,
+                mass: '6.39 × 10²³ kg', radius: '3,390 km', period: '687 days',
+                dist: '228 M km', temp: '-60°C avg', moons: '2', gravity: '3.7 m/s²',
+                orbitFrac: 0.85, roughness: 0.9, metalness: 0.05,
+                desc: 'The Red Planet. Home to Olympus Mons (21 km) — tallest volcano in solar system. Thin CO₂ atmosphere.',
+                glowColor: '#804020', hasClouds: false, hasRings: false, isGas: false
+            },
+            {
+                id: 4, name: 'Jupiter', type: 'Gas Giant',
+                color: '#c8904a', emissive: '#150800', cloudColor: null,
+                r: 3.6, orbitR: 54, ecc: 0.049, speed: 1.31, rotSpeed: 1.2, tilt: 3.1,
+                mass: '1.90 × 10²⁷ kg', radius: '69,911 km', period: '11.9 yrs',
+                dist: '778 M km', temp: '-110°C avg', moons: '95', gravity: '24.8 m/s²',
+                orbitFrac: 0.75, roughness: 0.7, metalness: 0.0,
+                desc: 'King of planets. Great Red Spot storm ≥350 yrs. Magnetic field 20,000× Earth\'s. 95 known moons.',
+                glowColor: '#c06020', hasClouds: false, hasRings: false, isGas: true
+            },
+            {
+                id: 5, name: 'Saturn', type: 'Gas Giant',
+                color: '#e6d4a0', emissive: '#1a1200', cloudColor: null,
+                r: 3.0, orbitR: 78, ecc: 0.057, speed: 0.97, rotSpeed: 1.0, tilt: 26.7,
+                mass: '5.68 × 10²⁶ kg', radius: '58,232 km', period: '29.5 yrs',
+                dist: '1.43 B km', temp: '-140°C avg', moons: '146', gravity: '10.4 m/s²',
+                orbitFrac: 0.7, roughness: 0.6, metalness: 0.0,
+                desc: 'Jewel of the solar system. Ring system spans 282,000 km but only 10-100 m thick. Lowest density of any planet.',
+                glowColor: '#c0a040', hasClouds: false, hasRings: true, isGas: true
+            },
+            {
+                id: 6, name: 'Uranus', type: 'Ice Giant',
+                color: '#7ddce8', emissive: '#002025', cloudColor: null,
+                r: 2.1, orbitR: 100, ecc: 0.046, speed: 0.68, rotSpeed: -0.7, tilt: 97.8,
+                mass: '8.68 × 10²⁵ kg', radius: '25,362 km', period: '84 yrs',
+                dist: '2.87 B km', temp: '-195°C avg', moons: '28', gravity: '8.7 m/s²',
+                orbitFrac: 0.6, roughness: 0.5, metalness: 0.05,
+                desc: 'The sideways planet. Rotates on its side. Faint ring system. Methane gives it cyan-blue color.',
+                glowColor: '#20a0c0', hasClouds: false, hasRings: true, isGas: false
+            },
+            {
+                id: 7, name: 'Neptune', type: 'Ice Giant',
+                color: '#3f54c8', emissive: '#000518', cloudColor: null,
+                r: 1.9, orbitR: 120, ecc: 0.010, speed: 0.54, rotSpeed: 0.65, tilt: 28.3,
+                mass: '1.02 × 10²⁶ kg', radius: '24,622 km', period: '165 yrs',
+                dist: '4.50 B km', temp: '-200°C avg', moons: '16', gravity: '11.2 m/s²',
+                orbitFrac: 0.55, roughness: 0.5, metalness: 0.05,
+                desc: 'Windiest planet — supersonic winds 2,100 km/h. Great Dark Spot storm system. Triton orbits retrograde.',
+                glowColor: '#1030c0', hasClouds: false, hasRings: false, isGas: false
+            }
+        ];
+
+        // ─────────────────────────────────────────────────────────────
+        //  RENDERER & SCENE INIT
+        // ─────────────────────────────────────────────────────────────
+        const canvas = document.getElementById('main-canvas');
+        const renderer = new THREE.WebGLRenderer({
+            canvas, antialias: true,
+            powerPreference: 'high-performance',
+            alpha: false, logarithmicDepthBuffer: true
+        });
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.4;
+        renderer.outputEncoding = THREE.sRGBEncoding;
+        renderer.physicallyCorrectLights = true;
+
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x000005);
+
+        const camera = new THREE.PerspectiveCamera(55, innerWidth / innerHeight, 0.01, 50000);
+        camera.position.set(0, 70, 160);
+        camera.lookAt(0, 0, 0);
+
+        const clock = new THREE.Clock();
+
+        // ─────────────────────────────────────────────────────────────
+        //  STATE
+        // ─────────────────────────────────────────────────────────────
+        const S = {
+            paused: false,
+            timeScale: 1.0,
+            showOrbits: true,
+            showLabels: false,
+            showPostFX: true,
+            showAsteroids: true,
+            realScale: false,
+            selectedPlanet: null,
+            handActive: false,
+
+            // Camera state (spherical coords)
+            camTheta: 0.3,
+            camPhi: 1.1,
+            camR: 160,
+            camTargetTheta: 0.3,
+            camTargetPhi: 1.1,
+            camTargetR: 160,
+
+            // Inertia
+            thetaV: 0, phiV: 0, rV: 0,
+
+            // Drag
+            isDragging: false,
+            lastMX: 0, lastMY: 0,
+            dragVX: 0, dragVY: 0,
+
+            // Time tracking
+            simElapsed: 0,
+            fps: 60,
+            fpsBuffer: [],
+
+            // Hand tracking
+            gesture: 'NONE',
+            gestureConf: 0,
+            gestureHoldFrames: 0,
+            prevGesture: 'NONE',
+            smoothHandX: 0.5, smoothHandY: 0.5,
+
+            // Post FX bloom simulation via scene layers
+            bloomEnabled: true
+        };
+
+        // ─────────────────────────────────────────────────────────────
+        //  TEXTURE FACTORY (procedural, no external assets)
+        // ─────────────────────────────────────────────────────────────
+        function makeTex(w, h, fn) {
+            const c = document.createElement('canvas'); c.width = w; c.height = h;
+            fn(c.getContext('2d'), w, h);
+            return new THREE.CanvasTexture(c);
+        }
+
+        function noiseVal(x, y, freq, octaves) {
+            // Smooth noise using sin-based pseudo-random
+            let v = 0, a = 1, f = freq, tot = 0;
+            for (let o = 0; o < octaves; o++) {
+                const nx = Math.sin(x * f * 17.3 + y * f * 31.7) * 4932.1;
+                const ny = Math.sin(y * f * 23.1 + x * f * 11.9) * 3821.5;
+                v += (Math.sin(nx + ny) * 0.5 + 0.5) * a;
+                tot += a; a *= 0.5; f *= 2.1;
+            }
+            return v / tot;
+        }
+
+        const TEX = {};
+
+        function buildTextures() {
+            // ── Sun ──
+            TEX.sun = makeTex(1024, 512, (ctx, W, H) => {
+                // Base gradient
+                const g = ctx.createRadialGradient(W / 2, H / 2, 0, W / 2, H / 2, W / 2);
+                g.addColorStop(0, '#fff8e0'); g.addColorStop(0.4, '#ffcc00');
+                g.addColorStop(0.8, '#ff8800'); g.addColorStop(1, '#cc4400');
+                ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+
+                // Granulation
+                for (let i = 0; i < 5000; i++) {
+                    const x = Math.random() * W, y = Math.random() * H;
+                    const r = Math.random() * 8 + 2;
+                    const bright = Math.random();
+                    const c = bright > 0.6 ? `rgba(255,255,200,${bright * 0.25})` : `rgba(180,80,0,${(1 - bright) * 0.3})`;
+                    ctx.beginPath(); ctx.fillStyle = c;
+                    ctx.ellipse(x, y, r, r * 0.6 + Math.random() * r * 0.4, Math.random() * Math.PI, 0, Math.PI * 2); ctx.fill();
+                }
+
+                // Sunspots
+                for (let i = 0; i < 15; i++) {
+                    const x = W * 0.15 + Math.random() * W * 0.7, y = H * 0.2 + Math.random() * H * 0.6;
+                    const r = Math.random() * 18 + 5;
+                    const sg = ctx.createRadialGradient(x, y, 0, x, y, r);
+                    sg.addColorStop(0, 'rgba(40,10,0,0.8)'); sg.addColorStop(0.5, 'rgba(80,20,0,0.5)'); sg.addColorStop(1, 'transparent');
+                    ctx.beginPath(); ctx.fillStyle = sg; ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+                }
+            });
+
+            // ── Mercury ──
+            TEX.mercury = makeTex(512, 256, (ctx, W, H) => {
+                ctx.fillStyle = '#8a8070'; ctx.fillRect(0, 0, W, H);
+                for (let i = 0; i < 500; i++) {
+                    const x = Math.random() * W, y = Math.random() * H, r = Math.random() * 12 + 1;
+                    const s = 120 + Math.floor(Math.random() * 60);
+                    ctx.beginPath(); ctx.fillStyle = `rgb(${s},${s - 10},${s - 20})`;
+                    ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+                    ctx.beginPath(); ctx.strokeStyle = `rgba(255,255,255,0.07)`;
+                    ctx.lineWidth = 1; ctx.arc(x, y, r, 0, Math.PI * 2); ctx.stroke();
+                }
+            });
+
+            // ── Venus ──
+            TEX.venus = makeTex(512, 256, (ctx, W, H) => {
+                const g = ctx.createLinearGradient(0, 0, W, H);
+                g.addColorStop(0, '#f0d060'); g.addColorStop(0.5, '#c89040'); g.addColorStop(1, '#e8c060');
+                ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+                ctx.globalAlpha = 0.4;
+                for (let i = 0; i < 40; i++) {
+                    const y = Math.random() * H;
+                    ctx.beginPath(); ctx.strokeStyle = `rgba(255,230,120,0.5)`;
+                    ctx.lineWidth = H * 0.04 + Math.random() * H * 0.06;
+                    ctx.moveTo(0, y); ctx.bezierCurveTo(W * 0.3, y + 30, W * 0.7, y - 30, W, y + 20); ctx.stroke();
+                }
+                ctx.globalAlpha = 1;
+            });
+
+            // ── Earth ──
+            TEX.earth = makeTex(1024, 512, (ctx, W, H) => {
+                ctx.fillStyle = '#1a5a8a'; ctx.fillRect(0, 0, W, H);
+                // Continents as filled shapes
+                const continents = [
+                    // North America
+                    [[155, 150], [180, 120], [220, 130], [235, 180], [230, 250], [200, 280], [160, 270], [145, 230]],
+                    // South America
+                    [[185, 285], [205, 275], [225, 290], [230, 350], [210, 410], [185, 400], [170, 350], [175, 310]],
+                    // Europe
+                    [[305, 130], [330, 115], [355, 130], [360, 165], [335, 175], [310, 165]],
+                    // Africa
+                    [[305, 175], [350, 170], [365, 200], [360, 320], [340, 360], [310, 350], [290, 300], [295, 230]],
+                    // Asia
+                    [[370, 120], [440, 100], [520, 115], [560, 150], [540, 200], [480, 220], [420, 200], [380, 170]],
+                    // Australia
+                    [[460, 310], [500, 295], [535, 315], [540, 355], [510, 365], [470, 350]],
+                ];
+                continents.forEach(pts => {
+                    ctx.beginPath();
+                    ctx.fillStyle = '#2d7a3d';
+                    ctx.moveTo(pts[0][0] / 1024 * W, pts[0][1] / 512 * H);
+                    pts.forEach(p => ctx.lineTo(p[0] / 1024 * W, p[1] / 512 * H));
+                    ctx.closePath(); ctx.fill();
+                });
+                // Antarctic
+                const ag = ctx.createLinearGradient(0, H * 0.85, 0, H);
+                ag.addColorStop(0, 'transparent'); ag.addColorStop(1, 'rgba(230,240,255,0.9)');
+                ctx.fillStyle = ag; ctx.fillRect(0, H * 0.85, W, H * 0.15);
+                // Arctic
+                const arcg = ctx.createLinearGradient(0, 0, 0, H * 0.12);
+                arcg.addColorStop(0, 'rgba(220,235,255,0.9)'); arcg.addColorStop(1, 'transparent');
+                ctx.fillStyle = arcg; ctx.fillRect(0, 0, W, H * 0.12);
+            });
+
+            // ── Earth Clouds ──
+            TEX.earthClouds = makeTex(1024, 512, (ctx, W, H) => {
+                ctx.clearRect(0, 0, W, H);
+                for (let i = 0; i < 200; i++) {
+                    const x = Math.random() * W, y = Math.random() * H;
+                    const rw = Math.random() * 80 + 20, rh = Math.random() * 25 + 8;
+                    const a = Math.random() * 0.65 + 0.2;
+                    const cg = ctx.createRadialGradient(x, y, 0, x, y, rw / 2);
+                    cg.addColorStop(0, `rgba(255,255,255,${a})`);
+                    cg.addColorStop(1, 'rgba(255,255,255,0)');
+                    ctx.fillStyle = cg;
+                    ctx.save(); ctx.translate(x, y); ctx.scale(1, rh / rw);
+                    ctx.beginPath(); ctx.arc(0, 0, rw / 2, 0, Math.PI * 2); ctx.fill();
+                    ctx.restore();
+                }
+            });
+
+            // ── Mars ──
+            TEX.mars = makeTex(512, 256, (ctx, W, H) => {
+                const g = ctx.createLinearGradient(0, 0, W, H);
+                g.addColorStop(0, '#c13010'); g.addColorStop(0.5, '#a82808'); g.addColorStop(1, '#b83015');
+                ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+                // Craters
+                for (let i = 0; i < 120; i++) {
+                    const x = Math.random() * W, y = H * 0.1 + Math.random() * H * 0.8, r = Math.random() * 15 + 2;
+                    const cr = ctx.createRadialGradient(x, y, 0, x, y, r);
+                    cr.addColorStop(0.7, 'rgba(0,0,0,0.25)');
+                    cr.addColorStop(0.8, 'rgba(0,0,0,0)');
+                    cr.addColorStop(0.9, 'rgba(255,200,150,0.12)');
+                    cr.addColorStop(1, 'rgba(0,0,0,0)');
+                    ctx.fillStyle = cr; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+                }
+                // Polar ice
+                const pi = ctx.createLinearGradient(0, 0, 0, H * 0.12);
+                pi.addColorStop(0, 'rgba(255,255,255,0.85)'); pi.addColorStop(1, 'transparent');
+                ctx.fillStyle = pi; ctx.fillRect(0, 0, W, H * 0.12);
+                const pi2 = ctx.createLinearGradient(0, H * 0.92, 0, H);
+                pi2.addColorStop(0, 'transparent'); pi2.addColorStop(1, 'rgba(255,255,255,0.7)');
+                ctx.fillStyle = pi2; ctx.fillRect(0, H * 0.92, W, H * 0.08);
+                // Valles Marineris
+                ctx.strokeStyle = 'rgba(60,10,0,0.6)'; ctx.lineWidth = 8;
+                ctx.beginPath(); ctx.moveTo(W * 0.25, H * 0.48);
+                ctx.bezierCurveTo(W * 0.4, H * 0.5, W * 0.6, H * 0.47, W * 0.75, H * 0.49);
+                ctx.stroke();
+            });
+
+            // ── Jupiter ──
+            TEX.jupiter = makeTex(1024, 512, (ctx, W, H) => {
+                const bands = [
+                    { y: 0.00, h: 0.08, c: '#c88040' }, { y: 0.08, h: 0.06, c: '#a06020' }, { y: 0.14, h: 0.1, c: '#d09858' },
+                    { y: 0.24, h: 0.04, c: '#805020' }, { y: 0.28, h: 0.12, c: '#e0b070' }, { y: 0.40, h: 0.08, c: '#c08040' },
+                    { y: 0.48, h: 0.12, c: '#d8a860' }, { y: 0.60, h: 0.08, c: '#a07030' }, { y: 0.68, h: 0.1, c: '#c89050' },
+                    { y: 0.78, h: 0.06, c: '#906030' }, { y: 0.84, h: 0.08, c: '#d0a060' }, { y: 0.92, h: 0.08, c: '#b07840' },
+                ];
+                bands.forEach(b => { ctx.fillStyle = b.c; ctx.fillRect(0, b.y * H, W, b.h * H + 1); });
+                // Band turbulence
+                for (let i = 0; i < 300; i++) {
+                    const x = Math.random() * W, y = Math.random() * H;
+                    ctx.beginPath();
+                    ctx.strokeStyle = `rgba(${Math.random() > 0.5 ? '210,170,80,0.25' : '100,50,10,0.2'})`;
+                    ctx.lineWidth = Math.random() * 4 + 1;
+                    ctx.moveTo(x, y);
+                    ctx.bezierCurveTo(x + W * 0.05, y + 10, x + W * 0.1, y - 8, x + W * 0.15, y + 5);
+                    ctx.stroke();
+                }
+                // Great Red Spot
+                ctx.save(); ctx.translate(W * 0.62, H * 0.52);
+                const rs = ctx.createRadialGradient(0, 0, 0, 0, 0, W * 0.055);
+                rs.addColorStop(0, '#ff5510'); rs.addColorStop(0.4, '#dd3300');
+                rs.addColorStop(0.7, '#aa2200'); rs.addColorStop(1, 'rgba(180,60,0,0)');
+                ctx.fillStyle = rs; ctx.scale(1.6, 1.0);
+                ctx.beginPath(); ctx.arc(0, 0, W * 0.055, 0, Math.PI * 2); ctx.fill();
+                ctx.restore();
+            });
+
+            // ── Saturn ──
+            TEX.saturn = makeTex(512, 256, (ctx, W, H) => {
+                const bands = [
+                    { y: 0, h: 0.1, c: '#e8d4a0' }, { y: 0.1, h: 0.08, c: '#c8b070' }, { y: 0.18, h: 0.12, c: '#dcc080' },
+                    { y: 0.30, h: 0.4, c: '#ead4a5' }, { y: 0.70, h: 0.1, c: '#c8b070' }, { y: 0.80, h: 0.12, c: '#dcc080' },
+                    { y: 0.92, h: 0.08, c: '#c0a060' },
+                ];
+                bands.forEach(b => { ctx.fillStyle = b.c; ctx.fillRect(0, b.y * H, W, b.h * H + 1); });
+                for (let i = 0; i < 80; i++) {
+                    const y = Math.random() * H;
+                    ctx.fillStyle = `rgba(${Math.random() > 0.5 ? '255,240,180' : '150,120,60'},0.06)`;
+                    ctx.fillRect(0, y, W, H / 40);
+                }
+            });
+
+            // ── Saturn Rings ──
+            TEX.saturnRings = makeTex(512, 1, (ctx, W) => {
+                const g = ctx.createLinearGradient(0, 0, W, 0);
+                g.addColorStop(0.00, 'rgba(0,0,0,0)');
+                g.addColorStop(0.06, 'rgba(210,195,150,0.3)');
+                g.addColorStop(0.12, 'rgba(200,185,140,0.6)');
+                g.addColorStop(0.20, 'rgba(0,0,0,0.1)');
+                g.addColorStop(0.22, 'rgba(220,200,160,0.85)');
+                g.addColorStop(0.40, 'rgba(200,180,140,0.9)');
+                g.addColorStop(0.42, 'rgba(0,0,0,0.15)');
+                g.addColorStop(0.45, 'rgba(215,195,155,0.75)');
+                g.addColorStop(0.60, 'rgba(200,185,145,0.7)');
+                g.addColorStop(0.65, 'rgba(0,0,0,0.2)');
+                g.addColorStop(0.70, 'rgba(205,188,148,0.5)');
+                g.addColorStop(0.80, 'rgba(195,178,138,0.35)');
+                g.addColorStop(0.90, 'rgba(185,168,128,0.15)');
+                g.addColorStop(1.00, 'rgba(0,0,0,0)');
+                ctx.fillStyle = g; ctx.fillRect(0, 0, W, 1);
+                // Detailed ring stripes
+                for (let i = 0; i < 80; i++) {
+                    const x = Math.random() * W;
+                    ctx.fillStyle = `rgba(255,250,230,${Math.random() * 0.12})`;
+                    ctx.fillRect(x, 0, Math.random() * 3 + 0.5, 1);
+                }
+            });
+
+            // ── Uranus ──
+            TEX.uranus = makeTex(256, 128, (ctx, W, H) => {
+                const g = ctx.createLinearGradient(0, 0, W, H);
+                g.addColorStop(0, '#7dd8e8'); g.addColorStop(0.5, '#5bbbd8'); g.addColorStop(1, '#7dd8e8');
+                ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+                for (let i = 0; i < 25; i++) {
+                    ctx.fillStyle = `rgba(0,0,0,${Math.random() * 0.05})`;
+                    ctx.fillRect(0, (i / 25) * H, W, H / 25);
+                }
+            });
+
+            // ── Uranus thin rings ──
+            TEX.uranusRings = makeTex(256, 1, (ctx, W) => {
+                ctx.clearRect(0, 0, W, 1);
+                [[0.35, 0.38, 'rgba(150,200,220,0.4)'], [0.40, 0.43, 'rgba(120,180,200,0.5)'], [0.50, 0.52, 'rgba(140,190,210,0.35)'],
+                [0.55, 0.58, 'rgba(160,200,220,0.45)']].forEach(([s, e, c]) => {
+                    const g2 = ctx.createLinearGradient(s * W, 0, e * W, 0);
+                    g2.addColorStop(0, 'transparent'); g2.addColorStop(0.2, c); g2.addColorStop(0.8, c); g2.addColorStop(1, 'transparent');
+                    ctx.fillStyle = g2; ctx.fillRect(s * W, 0, (e - s) * W, 1);
+                });
+            });
+
+            // ── Neptune ──
+            TEX.neptune = makeTex(256, 128, (ctx, W, H) => {
+                const g = ctx.createLinearGradient(0, 0, W, H);
+                g.addColorStop(0, '#3040c0'); g.addColorStop(0.5, '#2030a0'); g.addColorStop(1, '#3545c8');
+                ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+                ctx.fillStyle = 'rgba(0,15,80,0.6)'; ctx.save();
+                ctx.translate(W * 0.35, H * 0.4); ctx.scale(1.2, 0.8);
+                ctx.beginPath(); ctx.arc(0, 0, W * 0.12, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+                for (let i = 0; i < 20; i++) {
+                    ctx.fillStyle = `rgba(100,130,255,${Math.random() * 0.08})`;
+                    ctx.fillRect(0, (i / 20) * H, W, H / 20);
+                }
+            });
+        }
+
+        // ─────────────────────────────────────────────────────────────
+        //  SHADER DEFINITIONS
+        // ─────────────────────────────────────────────────────────────
+        const SHADERS = {
+
+            // Sun animated surface
+            SUN_VERT: `
+    varying vec2 vUv;
+    varying vec3 vNormal;
+    varying vec3 vWorldPos;
+    void main(){
+      vUv=uv; vNormal=normalize(normalMatrix*normal);
+      vec4 wp=modelMatrix*vec4(position,1.0);
+      vWorldPos=wp.xyz;
+      gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);
+    }`,
+
+            SUN_FRAG: `
+    uniform sampler2D tDiffuse;
+    uniform float time;
+    varying vec2 vUv;
+    varying vec3 vNormal;
+    uniform vec3 viewDir;
+
+    float hash(vec2 p){p=fract(p*0.3183099+0.1);p*=17.0;return fract(p.x*p.y*(p.x+p.y));}
+    float noise(vec2 p){
+      vec2 i=floor(p),f=fract(p);
+      f=f*f*(3.0-2.0*f);
+      return mix(mix(hash(i),hash(i+vec2(1,0)),f.x),mix(hash(i+vec2(0,1)),hash(i+vec2(1,1)),f.x),f.y);
+    }
+    float fbm(vec2 p){
+      float v=0.0,a=0.5; for(int i=0;i<6;i++){v+=a*noise(p);p*=2.1;a*=0.5;} return v;
+    }
+
+    void main(){
+      vec2 uv=vUv;
+      // Animated distortion
+      float t=time*0.08;
+      float n=fbm(uv*4.0+vec2(t,t*0.7));
+      float n2=fbm(uv*8.0-vec2(t*0.5,t));
+      vec2 warp=vec2(fbm(uv*3.0+n+t),fbm(uv*3.0+n2-t));
+      float surf=fbm(uv*6.0+warp*0.4+t*0.3);
+
+      vec3 col1=vec3(1.0,0.97,0.8);
+      vec3 col2=vec3(1.0,0.6,0.1);
+      vec3 col3=vec3(0.8,0.15,0.0);
+      vec3 col=mix(col2,col1,smoothstep(0.4,0.7,surf));
+      col=mix(col,col3,smoothstep(0.7,0.9,surf)*0.7);
+      // Sunspot
+      float spot=smoothstep(0.72,0.75,fbm(uv*2.5+vec2(time*0.02,0.0)));
+      col*=(1.0-spot*0.6);
+      // Limb darkening
+      float limb=dot(vNormal,vec3(0,0,1));
+      col*=0.6+0.4*pow(max(limb,0.0),0.4);
+      // Base texture
+      vec3 baseTex=texture2D(tDiffuse,uv+warp*0.02).rgb;
+      col=mix(col,baseTex,0.3);
+      gl_FragColor=vec4(col*1.8,1.0);
+    }`,
+
+            // Corona / glow layers
+            GLOW_VERT: `varying vec3 vNormal; void main(){vNormal=normalize(normalMatrix*normal);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`,
+            GLOW_FRAG: `
+    uniform vec3 glowColor; uniform float intensity; uniform float power;
+    varying vec3 vNormal;
+    void main(){
+      float d=pow(max(0.6-dot(vNormal,vec3(0,0,1)),0.0),power);
+      gl_FragColor=vec4(glowColor,d*intensity);
+    }`,
+
+            // Planet atmosphere Rayleigh scattering
+            ATMO_VERT: `varying vec3 vNormal; varying vec3 vPos;
+    void main(){vNormal=normalize(normalMatrix*normal);vPos=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`,
+            ATMO_FRAG: `
+    uniform vec3 atmoColor; uniform float thickness;
+    varying vec3 vNormal; varying vec3 vPos;
+    void main(){
+      float rim=1.0-max(dot(vNormal,vec3(0,0,1)),0.0);
+      float atmo=pow(rim,3.0)*thickness;
+      gl_FragColor=vec4(atmoColor,atmo);
+    }`,
+        };
+
+        // ─────────────────────────────────────────────────────────────
+        //  SCENE OBJECTS
+        // ─────────────────────────────────────────────────────────────
+        let sunMesh, sunMat, sunGlowMats = [];
+        let planetObjects = [];
+        let orbitLines = [];
+        let asteroidMesh;
+        let starPoints, starMat;
+        let labelEls = [];
+
+        // Uniforms to update
+        let sunUniforms;
+
+        // Ambient
+        scene.add(new THREE.AmbientLight(0x111133, 0.3));
+
+        // ── Starfield ──────────────────────────────────────────────
+        function buildStarfield() {
+            const N = 20000, pos = new Float32Array(N * 3), col = new Float32Array(N * 3), sz = new Float32Array(N);
+            const STAR_COLORS = [[1, 0.95, 0.85], [0.75, 0.85, 1], [1, 1, 1], [1, 0.7, 0.5], [0.6, 0.7, 1]];
+            for (let i = 0; i < N; i++) {
+                const theta = Math.random() * Math.PI * 2, phi = Math.acos(2 * Math.random() - 1);
+                const r = 1500 + Math.random() * 6000;
+                pos[i * 3] = r * Math.sin(phi) * Math.cos(theta);
+                pos[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
+                pos[i * 3 + 2] = r * Math.cos(phi);
+                const c = STAR_COLORS[Math.floor(Math.random() * STAR_COLORS.length)];
+                const b = 0.4 + Math.random() * 0.6;
+                col[i * 3] = c[0] * b; col[i * 3 + 1] = c[1] * b; col[i * 3 + 2] = c[2] * b;
+                sz[i] = Math.random() * 2.2 + 0.4;
+            }
+            const g = new THREE.BufferGeometry();
+            g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+            g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+            g.setAttribute('size', new THREE.BufferAttribute(sz, 1));
+            starMat = new THREE.ShaderMaterial({
+                uniforms: { time: { value: 0 } },
+                vertexShader: `
+      attribute float size; attribute vec3 color;
+      varying vec3 vCol; uniform float time;
+      void main(){
+        vCol=color;
+        vec4 mv=modelViewMatrix*vec4(position,1.0);
+        float flicker=1.0+0.04*sin(time*1.5+position.x*0.003+position.z*0.002);
+        gl_PointSize=size*flicker*(350.0/-mv.z);
+        gl_Position=projectionMatrix*mv;
+      }`,
+                fragmentShader: `
+      varying vec3 vCol;
+      void main(){
+        float d=length(gl_PointCoord-0.5)*2.0;
+        if(d>1.0)discard;
+        float a=pow(1.0-d,1.8);
+        gl_FragColor=vec4(vCol,a);
+      }`,
+                transparent: true, depthWrite: false,
+                blending: THREE.AdditiveBlending, vertexColors: true
+            });
+            starPoints = new THREE.Points(g, starMat);
+            scene.add(starPoints);
+        }
+
+        // ── Sun ────────────────────────────────────────────────────
+        function buildSun() {
+            const geo = new THREE.SphereGeometry(5, 64, 64);
+            sunUniforms = { tDiffuse: { value: TEX.sun }, time: { value: 0 } };
+            sunMat = new THREE.ShaderMaterial({
+                uniforms: sunUniforms,
+                vertexShader: SHADERS.SUN_VERT,
+                fragmentShader: SHADERS.SUN_FRAG,
+            });
+            sunMesh = new THREE.Mesh(geo, sunMat);
+            scene.add(sunMesh);
+
+            // Point light
+            const light = new THREE.PointLight(0xfff0d0, 4, 0, 1.2);
+            light.castShadow = true;
+            light.shadow.mapSize.set(2048, 2048);
+            scene.add(light);
+
+            // Corona glow layers
+            const coronaLayers = [
+                { scale: 1.25, color: new THREE.Color('#ff8800'), intensity: 0.7, power: 3.5 },
+                { scale: 1.55, color: new THREE.Color('#ff4400'), intensity: 0.4, power: 4.0 },
+                { scale: 2.0, color: new THREE.Color('#ff6600'), intensity: 0.2, power: 5.0 },
+                { scale: 2.8, color: new THREE.Color('#ffaa00'), intensity: 0.08, power: 6.0 },
+                { scale: 4.0, color: new THREE.Color('#ff8800'), intensity: 0.03, power: 7.0 },
+            ];
+            coronaLayers.forEach(layer => {
+                const m = new THREE.ShaderMaterial({
+                    uniforms: {
+                        glowColor: { value: layer.color },
+                        intensity: { value: layer.intensity },
+                        power: { value: layer.power }
+                    },
+                    vertexShader: SHADERS.GLOW_VERT,
+                    fragmentShader: SHADERS.GLOW_FRAG,
+                    side: THREE.BackSide, transparent: true,
+                    blending: THREE.AdditiveBlending, depthWrite: false
+                });
+                const mesh = new THREE.Mesh(new THREE.SphereGeometry(5 * layer.scale, 32, 32), m);
+                scene.add(mesh);
+                sunGlowMats.push(m);
+            });
+
+            // Lens flare effect (additive sprite)
+            const spr = new THREE.Sprite(new THREE.SpriteMaterial({
+                color: '#ffffff', opacity: 0.08, blending: THREE.AdditiveBlending, depthWrite: false
+            }));
+            spr.scale.setScalar(55);
+            scene.add(spr);
+        }
+
+        // ── Planet creation ────────────────────────────────────────
+        function buildPlanet(d) {
+            const group = new THREE.Group();
+            const texKey = d.name.toLowerCase().replace(/ /g, '');
+            const tex = TEX[texKey] || TEX.mercury;
+
+            // Main sphere
+            const mat = new THREE.MeshStandardMaterial({
+                map: tex,
+                roughness: d.roughness, metalness: d.metalness,
+                emissive: new THREE.Color(d.emissive),
+                emissiveIntensity: 0.08
+            });
+            const sphere = new THREE.Mesh(new THREE.SphereGeometry(d.r, 64, 64), mat);
+            sphere.castShadow = true; sphere.receiveShadow = true;
+            sphere.rotation.z = THREE.MathUtils.degToRad(d.tilt);
+            group.add(sphere);
+
+            // Atmosphere glow
+            const atmoMat = new THREE.ShaderMaterial({
+                uniforms: {
+                    atmoColor: { value: new THREE.Color(d.glowColor) },
+                    thickness: { value: d.hasAtmo ? 0.6 : 0.25 }
+                },
+                vertexShader: SHADERS.ATMO_VERT,
+                fragmentShader: SHADERS.ATMO_FRAG,
+                side: THREE.BackSide, transparent: true,
+                blending: THREE.AdditiveBlending, depthWrite: false
+            });
+            group.add(new THREE.Mesh(new THREE.SphereGeometry(d.r * 1.18, 32, 32), atmoMat));
+
+            let cloudMesh = null;
+            if (d.hasClouds) {
+                const cMat = new THREE.MeshStandardMaterial({
+                    map: d.name === 'Earth' ? TEX.earthClouds : null,
+                    color: d.cloudColor || '#ffffff',
+                    transparent: true, opacity: 0.7,
+                    depthWrite: false, roughness: 1, metalness: 0
+                });
+                cloudMesh = new THREE.Mesh(new THREE.SphereGeometry(d.r * 1.015, 48, 48), cMat);
+                cloudMesh.rotation.z = THREE.MathUtils.degToRad(d.tilt);
+                group.add(cloudMesh);
+            }
+
+            // Rings
+            if (d.hasRings) {
+                const isSaturn = d.name === 'Saturn';
+                const ringTex = isSaturn ? TEX.saturnRings : TEX.uranusRings;
+                const innerR = d.r * (isSaturn ? 1.22 : 1.35);
+                const outerR = d.r * (isSaturn ? 2.75 : 1.95);
+                const rGeo = new THREE.RingGeometry(innerR, outerR, 180, 4);
+
+                // Remap UVs for ring texture
+                const posArr = rGeo.attributes.position.array;
+                const uvArr = rGeo.attributes.uv.array;
+                for (let i = 0; i < posArr.length / 3; i++) {
+                    const x = posArr[i * 3], y = posArr[i * 3 + 1];
+                    const r = Math.sqrt(x * x + y * y);
+                    uvArr[i * 2] = (r - innerR) / (outerR - innerR);
+                    uvArr[i * 2 + 1] = 0.5;
+                }
+                rGeo.attributes.uv.needsUpdate = true;
+
+                const rMat = new THREE.MeshBasicMaterial({
+                    map: ringTex, side: THREE.DoubleSide,
+                    transparent: true, opacity: isSaturn ? 0.88 : 0.55,
+                    depthWrite: false, blending: THREE.NormalBlending
+                });
+                const ringMesh = new THREE.Mesh(rGeo, rMat);
+                ringMesh.rotation.x = Math.PI / 2;
+                if (d.name === 'Uranus') ringMesh.rotation.z = Math.PI / 2;
+                group.add(ringMesh);
+            }
+
+            // Initial orbit position
+            group.position.set(d.orbitR, 0, 0);
+
+            scene.add(group);
+
+            // Create label
+            const labelEl = document.createElement('div');
+            labelEl.className = 'planet-label';
+            labelEl.textContent = d.name;
+            labelEl.style.display = 'none';
+            document.getElementById('label-container').appendChild(labelEl);
+            labelEls.push(labelEl);
+
+            return {
+                group, sphere, cloudMesh, mat,
+                data: d,
+                angle: Math.random() * Math.PI * 2,
+                label: labelEl
+            };
+        }
+
+        // ── Orbit paths ────────────────────────────────────────────
+        function buildOrbitPath(d) {
+            const pts = [];
+            const steps = 256;
+            const a = d.orbitR, b = d.orbitR * (1 - d.ecc);
+            for (let i = 0; i <= steps; i++) {
+                const angle = (i / steps) * Math.PI * 2;
+                pts.push(new THREE.Vector3(a * Math.cos(angle), 0, b * Math.sin(angle)));
+            }
+            const g = new THREE.BufferGeometry().setFromPoints(pts);
+            const m = new THREE.LineBasicMaterial({ color: 0x334455, transparent: true, opacity: 0.3, depthWrite: false });
+            return new THREE.Line(g, m);
+        }
+
+        // ── Asteroid belt (instanced) ─────────────────────────────
+        function buildAsteroidBelt() {
+            const N = 2000;
+            const g = new THREE.BufferGeometry();
+            const iMesh = new THREE.InstancedMesh(
+                new THREE.SphereGeometry(0.08, 4, 4),
+                new THREE.MeshStandardMaterial({ color: 0x888070, roughness: 0.9, metalness: 0.1 }),
+                N
+            );
+            const dummy = new THREE.Object3D();
+            for (let i = 0; i < N; i++) {
+                const a = 36 + Math.random() * 8; // between Mars and Jupiter
+                const angle = Math.random() * Math.PI * 2;
+                const h = (Math.random() - 0.5) * 1.5;
+                dummy.position.set(a * Math.cos(angle), h, a * Math.sin(angle));
+                dummy.scale.setScalar(0.3 + Math.random() * 1.2);
+                dummy.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
+                dummy.updateMatrix();
+                iMesh.setMatrixAt(i, dummy.matrix);
+            }
+            iMesh.instanceMatrix.needsUpdate = true;
+            scene.add(iMesh);
+            return iMesh;
+        }
+
+        // ─────────────────────────────────────────────────────────────
+        //  SCENE BUILD
+        // ─────────────────────────────────────────────────────────────
+        function buildScene() {
+            buildTextures();
+            buildStarfield();
+            buildSun();
+
+            PLANETS.forEach(d => {
+                const p = buildPlanet(d);
+                planetObjects.push(p);
+                const o = buildOrbitPath(d);
+                scene.add(o);
+                orbitLines.push(o);
+            });
+
+            asteroidMesh = buildAsteroidBelt();
+        }
+
+        // ─────────────────────────────────────────────────────────────
+        //  CAMERA SYSTEM
+        // ─────────────────────────────────────────────────────────────
+        function updateCamera(dt) {
+            // Apply inertia from drag
+            if (!S.isDragging) {
+                S.thetaV *= 0.92; S.phiV *= 0.92; S.rV *= 0.9;
+                S.camTargetTheta += S.thetaV * dt;
+                S.camTargetPhi += S.phiV * dt;
+                S.camTargetR += S.rV * dt;
+            }
+
+            // Clamp
+            S.camTargetPhi = Math.max(0.08, Math.min(Math.PI - 0.08, S.camTargetPhi));
+            S.camTargetR = Math.max(12, Math.min(600, S.camTargetR));
+
+            // Smooth interpolation (exponential)
+            const lf = 1 - Math.pow(0.025, dt);
+            S.camTheta += (S.camTargetTheta - S.camTheta) * lf;
+            S.camPhi += (S.camTargetPhi - S.camPhi) * lf;
+            S.camR += (S.camTargetR - S.camR) * lf;
+
+            const cx = S.camR * Math.sin(S.camPhi) * Math.sin(S.camTheta);
+            const cy = S.camR * Math.cos(S.camPhi);
+            const cz = S.camR * Math.sin(S.camPhi) * Math.cos(S.camTheta);
+            camera.position.set(cx, cy, cz);
+            camera.lookAt(0, 0, 0);
+        }
+
+        // ─────────────────────────────────────────────────────────────
+        //  SIMULATION UPDATE
+        // ─────────────────────────────────────────────────────────────
+        function updateSimulation(simDt, t) {
+            S.simElapsed += simDt;
+
+            // Update planets
+            planetObjects.forEach((p, i) => {
+                const d = p.data;
+                // Elliptical orbit
+                p.angle += simDt * d.speed * 0.008;
+                const a = d.orbitR, b = d.orbitR * (1 - d.ecc * 0.5);
+                const x = a * Math.cos(p.angle);
+                const z = b * Math.sin(p.angle);
+                p.group.position.set(x, 0, z);
+
+                // Axial rotation
+                p.sphere.rotation.y += simDt * d.rotSpeed * 0.5;
+                if (p.cloudMesh) p.cloudMesh.rotation.y += simDt * d.rotSpeed * 0.55;
+            });
+
+            // Asteroid belt slow rotation
+            if (asteroidMesh) {
+                asteroidMesh.rotation.y += simDt * 0.02;
+            }
+        }
+
+        // ─────────────────────────────────────────────────────────────
+        //  LABELS & UI UPDATE
+        // ─────────────────────────────────────────────────────────────
+        const tmpV = new THREE.Vector3();
+        function updateLabelsAndUI() {
+            if (!S.showLabels) { labelEls.forEach(l => l.style.display = 'none'); return; }
+            planetObjects.forEach((p, i) => {
+                tmpV.copy(p.group.position);
+                tmpV.project(camera);
+                const inFront = tmpV.z < 1;
+                const sx = (tmpV.x * 0.5 + 0.5) * innerWidth;
+                const sy = (-tmpV.y * 0.5 + 0.5) * innerHeight;
+                const l = p.label;
+                l.style.display = inFront ? 'block' : 'none';
+                l.style.left = sx + 'px';
+                l.style.top = (sy + p.data.r * 28 + 10) + 'px';
+            });
+
+            // Focus ring
+            if (S.selectedPlanet !== null) {
+                const p = planetObjects[S.selectedPlanet];
+                tmpV.copy(p.group.position);
+                tmpV.project(camera);
+                const sx = (tmpV.x * 0.5 + 0.5) * innerWidth;
+                const sy = (-tmpV.y * 0.5 + 0.5) * innerHeight;
+                const dist = camera.position.distanceTo(p.group.position);
+                const sr = (p.data.r / dist) * innerHeight * 1.6 + 16;
+                const fr = document.getElementById('focus-ring');
+                fr.style.display = 'block';
+                fr.style.left = sx + 'px'; fr.style.top = sy + 'px';
+                fr.style.width = sr * 2 + 'px'; fr.style.height = sr * 2 + 'px';
+            }
+
+            // Sim time display
+            const days = Math.floor(S.simElapsed * 5);
+            const yr = Math.floor(days / 365) + 1;
+            const dy = days % 365;
+            document.getElementById('sim-date').textContent = `YEAR ${yr} · DAY ${dy}`;
+        }
+
+        // ─────────────────────────────────────────────────────────────
+        //  MAIN ANIMATION LOOP
+        // ─────────────────────────────────────────────────────────────
+        let lastFrameTime = 0;
+        function animate(now) {
+            requestAnimationFrame(animate);
+            const dt = Math.min(clock.getDelta(), 0.05);
+            const t = clock.getElapsedTime();
+
+            // FPS tracking
+            S.fpsBuffer.push(1 / Math.max(dt, 0.001));
+            if (S.fpsBuffer.length > 30) S.fpsBuffer.shift();
+            if (Math.floor(t) !== Math.floor(t - dt)) {
+                const avg = S.fpsBuffer.reduce((a, b) => a + b, 0) / S.fpsBuffer.length;
+                document.getElementById('fps-counter').textContent = Math.round(avg);
+            }
+
+            // Star twinkle
+            if (starMat) starMat.uniforms.time.value = t;
+
+            // Sun animation
+            if (sunUniforms) sunUniforms.time.value = t;
+
+            // Simulation
+            if (!S.paused) {
+                updateSimulation(dt * S.timeScale, t);
+            }
+
+            // Neutron star pulsar animation
+            if (supernovaState.active && supernovaState.neutronStar && supernovaState.neutronStar.visible) {
+                supernovaState.neutronStar.rotation.y += dt * 12;
+                if (supernovaState.nsMat) supernovaState.nsMat.uniforms.time.value = t;
+                if (supernovaState.jetMat) supernovaState.jetMat.uniforms.time.value = t;
+            }
+
+            // Camera
+            updateCamera(dt);
+
+            // Labels
+            updateLabelsAndUI();
+
+            // Post-FX: dynamic exposure based on looking at sun
+            const sunDir = new THREE.Vector3(0, 0, 0).sub(camera.position).normalize();
+            const exposure = 0.8 + Math.max(0, sunDir.dot(camera.getWorldDirection(new THREE.Vector3()))) * 0.8;
+            renderer.toneMappingExposure = THREE.MathUtils.lerp(renderer.toneMappingExposure, S.showPostFX ? exposure : 1.2, 0.02);
+
+            renderer.render(scene, camera);
+        }
+
+        // ─────────────────────────────────────────────────────────────
+        //  INPUT HANDLING
+        // ─────────────────────────────────────────────────────────────
+        const cursorDot = document.getElementById('cursor-dot');
+        const cursorRing = document.getElementById('cursor-ring');
+        let curX = 0, curY = 0, ringX = 0, ringY = 0;
+
+        document.addEventListener('mousemove', e => {
+            curX = e.clientX; curY = e.clientY;
+            cursorDot.style.left = curX + 'px'; cursorDot.style.top = curY + 'px';
+            if (S.isDragging) {
+                const dx = e.clientX - S.lastMX, dy = e.clientY - S.lastMY;
+                S.camTargetTheta -= dx * 0.006;
+                S.camTargetPhi -= dy * 0.006;
+                S.thetaV = -dx * 0.006; S.phiV = -dy * 0.006;
+                S.dragVX = dx; S.dragVY = dy;
+                S.lastMX = e.clientX; S.lastMY = e.clientY;
+            }
+        });
+
+        // Cursor ring lag
+        (function updateCursorRing() {
+            ringX += (curX - ringX) * 0.15; ringY += (curY - ringY) * 0.15;
+            cursorRing.style.left = ringX + 'px'; cursorRing.style.top = ringY + 'px';
+            requestAnimationFrame(updateCursorRing);
+        })();
+
+        document.addEventListener('mousedown', e => {
+            if (e.button === 0 || e.button === 2) {
+                S.isDragging = true; S.lastMX = e.clientX; S.lastMY = e.clientY;
+                S.thetaV = 0; S.phiV = 0;
+            }
+        });
+        document.addEventListener('mouseup', () => { S.isDragging = false; });
+        document.addEventListener('wheel', e => {
+            const dz = e.deltaY * 0.5;
+            S.camTargetR = Math.max(12, Math.min(600, S.camTargetR + dz));
+            S.rV = dz * 10;
+        }, { passive: true });
+        document.addEventListener('contextmenu', e => e.preventDefault());
+
+        // Raycasting for planet click
+        const raycaster = new THREE.Raycaster();
+        const mouse2 = new THREE.Vector2();
+        canvas.addEventListener('click', e => {
+            mouse2.x = (e.clientX / innerWidth) * 2 - 1;
+            mouse2.y = -(e.clientY / innerHeight) * 2 + 1;
+            raycaster.setFromCamera(mouse2, camera);
+            const spheres = planetObjects.map(p => p.sphere);
+            const hits = raycaster.intersectObjects(spheres);
+            if (hits.length > 0) {
+                const idx = spheres.indexOf(hits[0].object);
+                if (idx >= 0) selectPlanet(idx);
+            } else {
+                closePlanetPanel();
+            }
+        });
+
+        // Keyboard
+        document.addEventListener('keydown', e => {
+            switch (e.code) {
+                case 'ArrowLeft': S.camTargetTheta -= 0.12; break;
+                case 'ArrowRight': S.camTargetTheta += 0.12; break;
+                case 'ArrowUp': S.camTargetR = Math.max(12, S.camTargetR - 15); break;
+                case 'ArrowDown': S.camTargetR = Math.min(600, S.camTargetR + 15); break;
+                case 'Space': e.preventDefault(); togglePause(); break;
+                case 'KeyR': resetCamera(); break;
+                case 'KeyT': S.camTargetPhi = 0.05; S.camTargetR = 200; break;
+                case 'KeyO': toggleFeature('orbits'); break;
+                case 'KeyL': toggleFeature('labels'); break;
+                case 'KeyP': toggleFeature('postfx'); break;
+                case 'Escape': closePlanetPanel(); document.getElementById('shortcuts').style.display = 'none'; break;
+            }
+            // Planet focus 1-8
+            const n = parseInt(e.key);
+            if (n >= 1 && n <= 8) focusOnPlanet(n - 1);
+        });
+
+        // ─────────────────────────────────────────────────────────────
+        //  UI ACTIONS
+        // ─────────────────────────────────────────────────────────────
+        function selectPlanet(idx) {
+            S.selectedPlanet = idx;
+            const d = PLANETS[idx];
+            document.getElementById('pp-name').textContent = d.name.toUpperCase();
+            document.getElementById('pp-type').textContent = d.type;
+            document.getElementById('pp-mass').textContent = d.mass;
+            document.getElementById('pp-radius').textContent = d.radius;
+            document.getElementById('pp-period').textContent = d.period;
+            document.getElementById('pp-dist').textContent = d.dist;
+            document.getElementById('pp-temp').textContent = d.temp;
+            document.getElementById('pp-moons').textContent = d.moons;
+            document.getElementById('pp-gravity').textContent = d.gravity;
+            document.getElementById('pp-desc').textContent = d.desc;
+            document.getElementById('pp-orbit-fill').style.width = (d.orbitFrac * 100) + '%';
+            document.getElementById('planet-panel').classList.add('open');
+            document.getElementById('focus-ring').style.display = 'block';
+            toast(`${d.name.toUpperCase()} SELECTED`);
+        }
+
+        function closePlanetPanel() {
+            S.selectedPlanet = null;
+            document.getElementById('planet-panel').classList.remove('open');
+            document.getElementById('focus-ring').style.display = 'none';
+        }
+
+        function focusOnPlanet(idx) {
+            selectPlanet(idx);
+            // Smoothly move camera toward planet
+            const p = planetObjects[idx];
+            const pos = p.group.position;
+            const angle = Math.atan2(pos.x, pos.z);
+            S.camTargetTheta = angle + Math.PI * 0.05;
+            S.camTargetR = p.data.r * 20 + 20;
+            S.camTargetPhi = 1.1;
+        }
+
+        function togglePause() {
+            S.paused = !S.paused;
+            document.getElementById('sim-status-dot').classList.toggle('paused', S.paused);
+            document.getElementById('sim-status-text').textContent = S.paused ? 'PAUSED' : 'RUNNING';
+            document.getElementById('btn-pause-text').textContent = S.paused ? 'RESUME SIM' : 'PAUSE SIM';
+            document.getElementById('btn-pause').classList.toggle('active', S.paused);
+            toast(S.paused ? 'SIMULATION PAUSED' : 'SIMULATION RESUMED');
+        }
+
+        function resetCamera() {
+            S.camTargetTheta = 0.3; S.camTargetPhi = 1.1; S.camTargetR = 160;
+            S.thetaV = 0; S.phiV = 0; S.rV = 0;
+            closePlanetPanel();
+            toast('CAMERA RESET');
+        }
+
+        function toggleFeature(f) {
+            switch (f) {
+                case 'orbits':
+                    S.showOrbits = !S.showOrbits;
+                    orbitLines.forEach(l => l.visible = S.showOrbits);
+                    document.getElementById('btn-orbits').classList.toggle('active', S.showOrbits);
+                    toast(S.showOrbits ? 'ORBIT PATHS ON' : 'ORBIT PATHS OFF'); break;
+                case 'labels':
+                    S.showLabels = !S.showLabels;
+                    if (!S.showLabels) labelEls.forEach(l => l.style.display = 'none');
+                    document.getElementById('btn-labels').classList.toggle('active', S.showLabels);
+                    toast(S.showLabels ? 'LABELS ON' : 'LABELS OFF'); break;
+                case 'postfx':
+                    S.showPostFX = !S.showPostFX;
+                    document.getElementById('btn-postfx').classList.toggle('active', S.showPostFX);
+                    // Toggle glow intensities
+                    sunGlowMats.forEach((m, i) => m.uniforms.intensity.value = S.showPostFX ? [0.7, 0.4, 0.2, 0.08, 0.03][i] : 0);
+                    toast(S.showPostFX ? 'POST FX ON' : 'POST FX OFF'); break;
+                case 'asteroids':
+                    S.showAsteroids = !S.showAsteroids;
+                    asteroidMesh.visible = S.showAsteroids;
+                    document.getElementById('btn-asteroids').classList.toggle('active', S.showAsteroids);
+                    toast(S.showAsteroids ? 'ASTEROID BELT ON' : 'ASTEROID BELT OFF'); break;
+                case 'scale':
+                    S.realScale = !S.realScale;
+                    document.getElementById('btn-scale').classList.toggle('active', S.realScale);
+                    toast(S.realScale ? 'REAL SCALE (experimental)' : 'EDUCATIONAL SCALE'); break;
+            }
+        }
+
+        function toggleShortcuts() {
+            const el = document.getElementById('shortcuts');
+            el.style.display = el.style.display === 'block' ? 'none' : 'block';
+        }
+
+        function toast(msg) {
+            const t = document.getElementById('toast');
+            t.textContent = msg;
+            t.classList.add('show');
+            clearTimeout(toast._t);
+            toast._t = setTimeout(() => t.classList.remove('show'), 1800);
+        }
+
+        // Speed slider
+        document.getElementById('speed-slider').addEventListener('input', e => {
+            const v = parseFloat(e.target.value);
+            S.timeScale = Math.pow(10, (v / 100) * 3); // 1x to 1000x
+            const disp = S.timeScale < 10 ? S.timeScale.toFixed(1) + '×' : Math.round(S.timeScale) + '×';
+            document.getElementById('speed-value').textContent = disp;
+        });
+
+        // ─────────────────────────────────────────────────────────────
+        //  HAND TRACKING (MediaPipe + Fallback)
+        // ─────────────────────────────────────────────────────────────
+        let handIsTracking = false;
+        let handsDetector = null;
+
+        async function toggleHandTracking() {
+            if (!handIsTracking) {
+                await startHandTracking();
+            } else {
+                stopHandTracking();
+            }
+        }
+
+        async function startHandTracking() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 320, height: 240, facingMode: 'user' } });
+                const vid = document.getElementById('webcam-vid');
+                vid.srcObject = stream;
+                await vid.play();
+                handIsTracking = true;
+                S.handActive = true;
+                document.getElementById('hand-toggle-btn').textContent = '⊠ DISABLE HAND TRACKING';
+                document.getElementById('hand-status').textContent = 'ACTIVE';
+                document.getElementById('hand-status').style.color = 'var(--c-green)';
+                toast('HAND TRACKING ENABLED');
+
+                // Try to load MediaPipe
+                if (typeof Hands === 'undefined') {
+                    await loadMediaPipeScript();
+                }
+                if (typeof Hands !== 'undefined') {
+                    initMediaPipe(vid);
+                } else {
+                    startMotionFallback(vid);
+                }
+            } catch (err) {
+                toast('CAMERA ACCESS DENIED');
+                console.warn(err);
+            }
+        }
+
+        function stopHandTracking() {
+            const vid = document.getElementById('webcam-vid');
+            if (vid.srcObject) vid.srcObject.getTracks().forEach(t => t.stop());
+            vid.srcObject = null;
+            handIsTracking = false; S.handActive = false;
+            document.getElementById('hand-toggle-btn').textContent = '⊡ ENABLE HAND TRACKING';
+            document.getElementById('hand-status').textContent = 'OFFLINE';
+            document.getElementById('hand-status').style.color = '';
+            document.getElementById('gesture-readout').textContent = 'OFFLINE';
+            document.getElementById('hand-confidence-fill').style.width = '0%';
+            document.getElementById('hand-cursor').style.display = 'none';
+            const hc = document.getElementById('hand-canvas-overlay');
+            const hctx = hc.getContext('2d'); hctx.clearRect(0, 0, hc.width, hc.height);
+            if (handsDetector) handsDetector.close?.();
+            toast('HAND TRACKING DISABLED');
+        }
+
+        function loadMediaPipeScript() {
+            return new Promise(resolve => {
+                const s = document.createElement('script');
+                s.src = 'https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1646424915/hands.js';
+                s.crossOrigin = 'anonymous';
+                s.onload = resolve; s.onerror = resolve;
+                document.head.appendChild(s);
+            });
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        //  HAND GESTURE ENGINE — VELOCITY-BASED (no keyboard needed)
+        //  ทุกอย่างควบคุมด้วยมือ ไม่ต้องใช้แป้นพิมพ์
+        // ═══════════════════════════════════════════════════════════════
+
+        // ── Kalman-like 1D smoother ──────────────────────────────────
+        class Smoother1D {
+            constructor(alpha = 0.18, velAlpha = 0.25) {
+                this.v = 0.5; this.vel = 0; this.alpha = alpha; this.velAlpha = velAlpha;
+            }
+            update(raw) {
+                const prev = this.v;
+                this.v = this.v * (1 - this.alpha) + raw * this.alpha;
+                const rawVel = this.v - prev;
+                this.vel = this.vel * (1 - this.velAlpha) + rawVel * this.velAlpha;
+                return this.v;
+            }
+        }
+
+        const SX = new Smoother1D(0.15, 0.3);
+        const SY = new Smoother1D(0.15, 0.3);
+        // Store last raw to detect lock (no movement)
+        let lastRawX = 0.5, lastRawY = 0.5;
+        let handLocked = false; // hand stopped moving = no accidental input
+
+        // Fist charge
+        let fistChargeFrames = 0;
+        const FIST_CHARGE_MAX = 75;
+
+        // Gesture hold counters
+        let gestureHold = 0, lastGesture = 'NONE';
+
+        // Time warp state
+        let timeWarpActive = false;
+        let timeWarpScale = 1;
+        let pointDirX = 0;
+
+        // ── Finger extension classifier (robust) ────────────────────
+        function isFingerExtended(lms, finger) {
+            // finger: 1=index,2=middle,3=ring,4=pinky (0=thumb special)
+            const TIP = [4, 8, 12, 16, 20];
+            const PIP = [3, 6, 10, 14, 18];
+            const MCP = [2, 5, 9, 13, 17];
+            if (finger === 0) {
+                // Thumb: use x distance to palm center
+                const palmX = (lms[5].x + lms[17].x) / 2;
+                return Math.abs(lms[4].x - palmX) > 0.08;
+            }
+            const f = finger;
+            // Must be above PIP joint by a margin
+            const tipY = lms[TIP[f]].y;
+            const pipY = lms[PIP[f]].y;
+            const mcpY = lms[MCP[f]].y;
+            const fingerLength = Math.abs(mcpY - pipY);
+            return (pipY - tipY) > fingerLength * 0.3;
+        }
+
+        function classifyGesture(lms) {
+            if (!lms || lms.length < 21) return 'NONE';
+
+            const ext = [0, 1, 2, 3, 4].map(i => isFingerExtended(lms, i));
+            const extCount = ext.filter(Boolean).length;
+
+            // ── Pinch: thumb+index close ──
+            const pinchDist = Math.hypot(lms[4].x - lms[8].x, lms[4].y - lms[8].y);
+            if (pinchDist < 0.055 && !ext[2] && !ext[3] && !ext[4]) return 'PINCH';
+
+            // ── Fist: all curled ──
+            if (!ext[1] && !ext[2] && !ext[3] && !ext[4]) return 'FIST';
+
+            // ── Point: only index extended ──
+            if (ext[1] && !ext[2] && !ext[3] && !ext[4]) {
+                // Direction: tip vs base of index
+                pointDirX = lms[8].x - lms[5].x;
+                return 'POINT';
+            }
+
+            // ── Peace ✌: index+middle, ring+pinky curled ──
+            if (ext[1] && ext[2] && !ext[3] && !ext[4]) return 'PEACE';
+
+            // ── Open hand (MOVE): 4 or 5 fingers extended ──
+            if (extCount >= 4) return 'MOVE';
+
+            return 'NONE';
+        }
+
+        // ── Main gesture processor ───────────────────────────────────
+        function applyGesture(gesture, rawX, rawY) {
+
+            // Smooth hand position
+            const sx = SX.update(rawX);
+            const sy = SY.update(rawY);
+
+            // Detect if hand is stationary (lock = no accidental input)
+            const moveDelta = Math.hypot(rawX - lastRawX, rawY - lastRawY);
+            lastRawX = rawX; lastRawY = rawY;
+            handLocked = moveDelta < 0.003; // sub-pixel = static hand
+
+            // Gesture stability counter
+            if (gesture === lastGesture) { gestureHold++; }
+            else { gestureHold = 0; lastGesture = gesture; }
+
+            // Highlight gesture hints
+            ['lr', 'ud', 'pinch', 'fist', 'point', 'peace'].forEach(id => {
+                document.getElementById('gh-' + id)?.classList.remove('g-hint-active');
+            });
+
+            // ── Map gesture → action ─────────────────────────────────
+            switch (gesture) {
+
+                // ┌─────────────────────────────────────────────────────┐
+                // │  OPEN HAND 🖐  —  ROTATE + ZOOM                     │
+                // │  เคลื่อนมือซ้าย/ขวา = หมุนกล้อง                       │
+                // │  เคลื่อนมือขึ้น/ลง = ซูม                              │
+                // └─────────────────────────────────────────────────────┘
+                case 'MOVE': {
+                    document.getElementById('gh-lr')?.classList.add('g-hint-active');
+                    document.getElementById('gh-ud')?.classList.add('g-hint-active');
+
+                    // Use velocity (delta per frame) × sensitivity
+                    // SX.vel is already smoothed velocity in [−1,1] range
+                    const DEAD = 0.0025;        // dead zone: ignore tiny tremors
+                    const ROT_SENS = 8.0;       // rotation sensitivity
+                    const ZOOM_SENS = 60.0;     // zoom sensitivity
+
+                    if (Math.abs(SX.vel) > DEAD && !handLocked) {
+                        // webcam is mirrored: hand moves right → SX increases → theta increases
+                        // We negate so moving hand right = rotate to right (natural)
+                        S.camTargetTheta -= SX.vel * ROT_SENS;
+                        // Add inertia
+                        S.thetaV = -SX.vel * ROT_SENS * 0.5;
+                    }
+
+                    if (Math.abs(SY.vel) > DEAD && !handLocked) {
+                        // Hand up (Y decreases in screen space) = zoom in
+                        // Hand down (Y increases) = zoom out
+                        const zoom = SY.vel * ZOOM_SENS;
+                        S.camTargetR = Math.max(12, Math.min(600, S.camTargetR + zoom));
+                        S.rV = zoom * 0.5;
+                    }
+
+                    fistChargeFrames = 0;
+                    updateFistCharge(0);
+                    break;
+                }
+
+                // ┌─────────────────────────────────────────────────────┐
+                // │  PINCH 🤏  —  PAUSE / PLAY                          │
+                // └─────────────────────────────────────────────────────┘
+                case 'PINCH': {
+                    document.getElementById('gh-pinch')?.classList.add('g-hint-active');
+                    fistChargeFrames = Math.max(0, fistChargeFrames - 3);
+                    updateFistCharge(fistChargeFrames / FIST_CHARGE_MAX);
+                    // Trigger once at hold=10
+                    if (gestureHold === 10) togglePause();
+                    if (timeWarpActive) deactivateTimeWarp();
+                    break;
+                }
+
+                // ┌─────────────────────────────────────────────────────┐
+                // │  FIST ✊  —  CHARGE → SUPERNOVA                     │
+                // │  กำค้างไว้ 2.5 วินาที = ระเบิดระบบสุริยะ              │
+                // │  (ระหว่าง timeline: กำค้างอีก = รีเซ็ต)               │
+                // └─────────────────────────────────────────────────────┘
+                case 'FIST': {
+                    document.getElementById('gh-fist')?.classList.add('g-hint-active');
+                    if (!supernovaState.active) {
+                        fistChargeFrames = Math.min(fistChargeFrames + 1, FIST_CHARGE_MAX);
+                        updateFistCharge(fistChargeFrames / FIST_CHARGE_MAX);
+                        if (fistChargeFrames >= FIST_CHARGE_MAX) triggerSupernova();
+                    } else {
+                        // Post-explosion: hold fist again to reset
+                        if (gestureHold === 25) resetSupernovaTimeline();
+                    }
+                    if (timeWarpActive) deactivateTimeWarp();
+                    break;
+                }
+
+                // ┌─────────────────────────────────────────────────────┐
+                // │  POINT ☞  —  TIME WARP                              │
+                // │  ชี้นิ้วชี้ขวา = เร่งเวลา                              │
+                // │  ชี้นิ้วชี้ซ้าย = ชะลอเวลา                             │
+                // └─────────────────────────────────────────────────────┘
+                case 'POINT': {
+                    document.getElementById('gh-point')?.classList.add('g-hint-active');
+                    fistChargeFrames = Math.max(0, fistChargeFrames - 3);
+                    updateFistCharge(fistChargeFrames / FIST_CHARGE_MAX);
+
+                    if (!timeWarpActive) activateTimeWarp();
+
+                    // pointDirX: + = tip is right of base in camera (mirrored = left on screen)
+                    // So negate: hand pointing right on screen → positive warp
+                    const dir = -pointDirX;        // positive = pointing right = FASTER
+                    const mag = Math.min(Math.abs(dir) * 18, 12); // cap multiplier at 12
+
+                    if (supernovaState.active) {
+                        // Scale the snTimeElapsed advance speed
+                        timeWarpScale = Math.max(0.05, 1 + mag * Math.sign(dir));
+                    } else {
+                        // Normal sim: speed up/slow down orbital simulation
+                        const baseScale = 1 + Math.max(0, mag * Math.sign(dir));
+                        timeWarpScale = Math.max(0.1, Math.min(200, baseScale));
+                        S.timeScale = timeWarpScale;
+                    }
+                    document.getElementById('timewarp-speed').textContent =
+                        (timeWarpScale < 10 ? timeWarpScale.toFixed(1) : Math.round(timeWarpScale)) + '×';
+                    break;
+                }
+
+                // ┌─────────────────────────────────────────────────────┐
+                // │  PEACE ✌  —  TOGGLE POST FX                         │
+                // └─────────────────────────────────────────────────────┘
+                case 'PEACE': {
+                    document.getElementById('gh-peace')?.classList.add('g-hint-active');
+                    fistChargeFrames = Math.max(0, fistChargeFrames - 2);
+                    updateFistCharge(fistChargeFrames / FIST_CHARGE_MAX);
+                    if (gestureHold === 15) toggleFeature('postfx');
+                    if (timeWarpActive) deactivateTimeWarp();
+                    break;
+                }
+
+                default: {
+                    // No hand / unrecognized: decay charge
+                    fistChargeFrames = Math.max(0, fistChargeFrames - 2);
+                    updateFistCharge(fistChargeFrames / FIST_CHARGE_MAX);
+                    if (timeWarpActive) deactivateTimeWarp();
+                    break;
+                }
+            }
+
+            // Update readout
+            const labels = { NONE: 'NO HAND', MOVE: '🖐 ROTATE / ZOOM', FIST: '✊ CHARGING...', PINCH: '🤏 PAUSE/PLAY', POINT: '☞ TIME WARP', PEACE: '✌ TOGGLE FX' };
+            document.getElementById('gesture-readout').textContent = labels[gesture] || gesture;
+            document.getElementById('hand-confidence-fill').style.width = (S.gestureConf * 100) + '%';
+        }
+
+        // ── Fist charge visual ────────────────────────────────────────
+        function updateFistCharge(pct) {
+            const wrap = document.getElementById('fist-charge-wrap');
+            const bar = document.getElementById('fist-charge-bar');
+            const txt = document.getElementById('fist-pct');
+            const isActive = pct > 0.02 && !supernovaState.active;
+            wrap.style.display = isActive ? 'block' : 'none';
+            if (isActive) {
+                bar.style.width = (pct * 100) + '%';
+                txt.textContent = Math.round(pct * 100) + '%';
+                const r = 255, g = Math.round(180 * (1 - pct)), b = 0;
+                bar.style.boxShadow = `0 0 ${8 + pct * 35}px rgba(${r},${g},${b},0.95)`;
+                bar.style.background = `linear-gradient(90deg,#ff2200,rgb(${r},${g + 80},0),#ffffff ${pct * 100 + 10}%)`;
+            }
+        }
+
+        // ── Time warp helpers ────────────────────────────────────────
+        function activateTimeWarp() {
+            timeWarpActive = true;
+            document.getElementById('timewarp-hud').style.display = 'block';
+        }
+        function deactivateTimeWarp() {
+            timeWarpActive = false; timeWarpScale = 1;
+            document.getElementById('timewarp-hud').style.display = 'none';
+            // Restore sim speed to slider value
+            const v = parseFloat(document.getElementById('speed-slider').value);
+            if (!supernovaState.active) {
+                S.timeScale = Math.pow(10, (v / 100) * 3);
+            }
+        }
+
+        // ─────────────────────────────────────────────────────────────
+        //  SUPERNOVA SYSTEM — Scientifically Accurate Timeline
+        // ─────────────────────────────────────────────────────────────
+        /*
+          Real stellar death sequence (scaled to ~60s real-time):
+          Phase 0: Core Collapse        (~0s)     — core collapses in 0.25s, bounce
+          Phase 1: Shock Wave Launch    (~1s)     — shock wave propagates through envelope
+          Phase 2: Neutrino Burst       (~3s)     — 10^58 neutrinos escape (SN1987A confirmed)
+          Phase 3: Shockwave Breakout   (~8s)     — shock emerges from surface, UV flash
+          Phase 4: Expanding Fireball   (~15s)    — ejecta 10,000 km/s, envelope blown off
+          Phase 5: Supernova Peak       (~25s)    — peak luminosity billions of Suns
+          Phase 6: Nebula Formation     (~40s)    — ejecta cools, heavy elements scattered
+          Phase 7: Remnant              (~55s)    — neutron star or black hole left behind
+        */
+
+        const SN_TIMELINE = [
+            {
+                phase: 0, t: 0, name: 'CORE COLLAPSE', time: 'T+0.25 SECONDS',
+                desc: 'Iron core collapses at ¼ speed of light. Gravity overwhelms electron degeneracy pressure. Core density reaches 10¹⁴ g/cm³ — denser than an atomic nucleus.',
+                color: '#ff8800', sunScale: 1.0, ejectaSpeed: 0
+            },
+
+            {
+                phase: 1, t: 4, name: 'SHOCK WAVE LAUNCH', time: 'T+1 SECOND',
+                desc: 'Rebounding core generates shockwave at 70,000 km/s. Outer stellar layers resist — the shock stalls. Neutrinos begin to heat the region behind the shock.',
+                color: '#ff6600', sunScale: 1.4, ejectaSpeed: 0.5
+            },
+
+            {
+                phase: 2, t: 10, name: 'NEUTRINO BURST', time: 'T+3 SECONDS',
+                desc: '10⁵⁸ neutrinos carry away 99% of explosion energy in seconds. SN1987A proved this — neutrinos arrived 3 hours BEFORE the light. Each neutrino passes through Earth unimpeded.',
+                color: '#ccffff', sunScale: 2.0, ejectaSpeed: 1.5
+            },
+
+            {
+                phase: 3, t: 18, name: 'SHOCK BREAKOUT', time: 'T+1-2 HOURS',
+                desc: 'Shockwave breaks through the stellar surface — brilliant UV/X-ray flash lasting minutes. This is the first visible sign of death, brighter than the entire galaxy for a moment.',
+                color: '#ffffff', sunScale: 3.5, ejectaSpeed: 3
+            },
+
+            {
+                phase: 4, t: 28, name: 'EXPANDING EJECTA', time: 'T+DAYS',
+                desc: 'Outer envelope expelled at 10,000–30,000 km/s. Heavier elements (iron, gold, uranium) synthesized in seconds by the r-process — scattered into space to form future planets.',
+                color: '#ff4400', sunScale: 5.0, ejectaSpeed: 6
+            },
+
+            {
+                phase: 5, t: 38, name: 'PEAK LUMINOSITY', time: 'T+2-3 WEEKS',
+                desc: 'Supernova reaches maximum brightness: 5 billion× the Sun. Powered by radioactive decay of ⁵⁶Ni → ⁵⁶Co → ⁵⁶Fe. Visible across the universe — 10 billion light-years away.',
+                color: '#ffffaa', sunScale: 7.0, ejectaSpeed: 8
+            },
+
+            {
+                phase: 6, t: 50, name: 'NEBULA FORMATION', time: 'T+CENTURIES',
+                desc: 'Expanding gas cloud cools and forms emission nebula — like the Crab Nebula (SN 1054 AD). Newly forged atoms — carbon, oxygen, iron, gold — seed the next generation of stars.',
+                color: '#ff6633', sunScale: 12.0, ejectaSpeed: 10
+            },
+
+            {
+                phase: 7, t: 62, name: 'NEUTRON STAR / BLACK HOLE', time: 'T+FOREVER',
+                desc: 'If core mass <3M☉: neutron star remains, spinning 600× per second (pulsar), 10 km diameter but 1.4 solar masses. If >3M☉: spacetime collapses into black hole. The Sun\'s future? White dwarf — it\'s too small to explode.',
+                color: '#4466ff', sunScale: 0.15, ejectaSpeed: 0
+            }
+        ];
+
+        const supernovaState = {
+            active: false,
+            phase: -1,
+            phaseStartTime: 0,
+            ejectaParticles: null,
+            ejectaSystem: null,
+            neutronStar: null,
+            blackHole: null,
+            originalPlanetPos: [],
+            planetEjectaVel: [],
+        };
+
+        function triggerSupernova() {
+            if (supernovaState.active) return;
+            supernovaState.active = true;
+            supernovaState.phase = 0;
+            supernovaState.phaseStartTime = performance.now() / 1000;
+            fistChargeFrames = 0;
+            updateFistCharge(0);
+            document.getElementById('fist-charge-wrap').style.display = 'none';
+
+            // Save planet positions
+            planetObjects.forEach((p, i) => {
+                supernovaState.originalPlanetPos[i] = p.group.position.clone();
+                const dir = p.group.position.clone().normalize();
+                supernovaState.planetEjectaVel[i] = dir.multiplyScalar(0.5 + Math.random() * 0.5);
+            });
+
+            // Pause normal simulation
+            S.paused = true;
+
+            // Build ejecta particle system
+            buildEjectaParticles();
+
+            // Build neutron star (hidden initially)
+            buildNeutronStar();
+
+            // Start the timeline
+            showTimelineLive(0);
+            toast('✊ SUPERNOVA TRIGGERED — STELLAR DEATH SEQUENCE');
+
+            // Screenshake
+            doScreenShake(0.8);
+
+            // Begin phase-driven animation
+            supernovaState.tlInterval = setInterval(() => advanceSupernovaTimeline(), 300);
+        }
+
+        function buildEjectaParticles() {
+            const N = 3000;
+            const geo = new THREE.BufferGeometry();
+            const pos = new Float32Array(N * 3);
+            const col = new Float32Array(N * 3);
+            const vel = new Float32Array(N * 3);
+            const sz = new Float32Array(N);
+
+            for (let i = 0; i < N; i++) {
+                pos[i * 3] = 0; pos[i * 3 + 1] = 0; pos[i * 3 + 2] = 0;
+                const theta = Math.random() * Math.PI * 2;
+                const phi = Math.acos(2 * Math.random() - 1);
+                const speed = 0.1 + Math.random() * 0.8;
+                vel[i * 3] = speed * Math.sin(phi) * Math.cos(theta);
+                vel[i * 3 + 1] = speed * Math.sin(phi) * Math.sin(theta);
+                vel[i * 3 + 2] = speed * Math.cos(phi);
+                // Color based on element temperature
+                const t = Math.random();
+                if (t < 0.3) { col[i * 3] = 1; col[i * 3 + 1] = 0.9; col[i * 3 + 2] = 0.4; } // yellow (He)
+                else if (t < 0.6) { col[i * 3] = 1; col[i * 3 + 1] = 0.4; col[i * 3 + 2] = 0.1; } // orange (C/O)
+                else if (t < 0.85) { col[i * 3] = 1; col[i * 3 + 1] = 0.8; col[i * 3 + 2] = 1; } // white (H)
+                else { col[i * 3] = 0.4; col[i * 3 + 1] = 0.6; col[i * 3 + 2] = 1; } // blue (heavy metals)
+                sz[i] = Math.random() * 3 + 1;
+            }
+
+            geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+            geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+            geo.setAttribute('size', new THREE.BufferAttribute(sz, 1));
+            geo.userData.velocities = vel;
+
+            const mat = new THREE.ShaderMaterial({
+                uniforms: { time: { value: 0 }, expansion: { value: 0 } },
+                vertexShader: `
+      attribute float size; attribute vec3 color;
+      varying vec3 vCol;
+      uniform float expansion;
+      void main(){
+        vCol=color;
+        vec4 mv=modelViewMatrix*vec4(position,1.0);
+        gl_PointSize=size*(1.0+expansion*0.5)*(300.0/-mv.z);
+        gl_Position=projectionMatrix*mv;
+      }`,
+                fragmentShader: `
+      varying vec3 vCol;
+      void main(){
+        float d=length(gl_PointCoord-0.5)*2.0;
+        if(d>1.0)discard;
+        float a=pow(1.0-d,1.5)*0.85;
+        gl_FragColor=vec4(vCol,a);
+      }`,
+                transparent: true, depthWrite: false,
+                blending: THREE.AdditiveBlending, vertexColors: true
+            });
+
+            const pts = new THREE.Points(geo, mat);
+            scene.add(pts);
+            supernovaState.ejectaSystem = pts;
+            supernovaState.ejectaMat = mat;
+        }
+
+        function buildNeutronStar() {
+            // Neutron star: tiny, blue-white, intensely glowing
+            const geo = new THREE.SphereGeometry(0.3, 16, 16);
+            const mat = new THREE.MeshStandardMaterial({
+                color: '#aaccff', emissive: '#6699ff', emissiveIntensity: 5, roughness: 0.1, metalness: 0.8
+            });
+            const ns = new THREE.Mesh(geo, mat);
+            ns.visible = false;
+
+            // Glow
+            const glowMat = new THREE.ShaderMaterial({
+                uniforms: { time: { value: 0 } },
+                vertexShader: 'varying vec3 vN;void main(){vN=normalize(normalMatrix*normal);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
+                fragmentShader: `
+      uniform float time;varying vec3 vN;
+      void main(){
+        float p=pow(max(0.6-dot(vN,vec3(0,0,1)),0.0),2.0);
+        float pulse=0.7+0.3*sin(time*40.0); // pulsar spin
+        gl_FragColor=vec4(0.3,0.6,1.0,p*pulse*1.5);
+      }`,
+                side: THREE.BackSide, transparent: true,
+                blending: THREE.AdditiveBlending, depthWrite: false
+            });
+            const glow = new THREE.Mesh(new THREE.SphereGeometry(0.8, 16, 16), glowMat);
+
+            // Pulsar jet beams
+            const jetMat = new THREE.ShaderMaterial({
+                uniforms: { time: { value: 0 } },
+                vertexShader: 'varying vec2 vU;void main(){vU=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
+                fragmentShader: `
+      uniform float time;varying vec2 vU;
+      void main(){
+        float d=abs(vU.x-0.5)*2.0;
+        float fade=1.0-abs(vU.y-0.5)*2.0;
+        float pulse=0.6+0.4*sin(time*40.0+vU.y*20.0);
+        float a=max(0.0,1.0-d*4.0)*fade*pulse;
+        gl_FragColor=vec4(0.4,0.7,1.0,a*0.8);
+      }`,
+                transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide
+            });
+            const jetGeo = new THREE.PlaneGeometry(0.4, 30);
+            const jet1 = new THREE.Mesh(jetGeo, jetMat);
+            const jet2 = new THREE.Mesh(jetGeo, jetMat);
+            jet2.rotation.y = Math.PI / 2;
+
+            const nsGroup = new THREE.Group();
+            nsGroup.add(ns);
+            nsGroup.add(glow);
+            nsGroup.add(jet1);
+            nsGroup.add(jet2);
+            nsGroup.visible = false;
+            scene.add(nsGroup);
+            supernovaState.neutronStar = nsGroup;
+            supernovaState.nsMat = glowMat;
+            supernovaState.jetMat = jetMat;
+        }
+
+        let snTimeElapsed = 0;
+        let snPhaseIdx = 0;
+
+        function advanceSupernovaTimeline() {
+            snTimeElapsed += 0.3 * (timeWarpActive ? timeWarpScale : 1);
+
+            // Find current phase
+            for (let i = SN_TIMELINE.length - 1; i >= 0; i--) {
+                if (snTimeElapsed >= SN_TIMELINE[i].t) { snPhaseIdx = i; break; }
+            }
+            const phase = SN_TIMELINE[snPhaseIdx];
+            const nextPhase = SN_TIMELINE[Math.min(snPhaseIdx + 1, SN_TIMELINE.length - 1)];
+
+            // Progress within phase [0..1]
+            const dur = nextPhase.t - phase.t || 5;
+            const prog = Math.min(1, (snTimeElapsed - phase.t) / dur);
+
+            showTimelineLive(snPhaseIdx, prog);
+            animateSupernovaPhase(phase, nextPhase, prog);
+
+            // End
+            if (snTimeElapsed > SN_TIMELINE[SN_TIMELINE.length - 1].t + 5) {
+                clearInterval(supernovaState.tlInterval);
+                document.getElementById('tl-desc').textContent = '✊ HOLD FIST AGAIN TO RESET SYSTEM';
+            }
+        }
+
+        function showTimelineLive(idx, prog = 0) {
+            const phase = SN_TIMELINE[idx];
+            document.getElementById('timeline-hud').style.display = 'block';
+            document.getElementById('tl-phase').textContent = phase.name;
+            document.getElementById('tl-time').textContent = phase.time;
+            document.getElementById('tl-desc').textContent = phase.desc;
+            document.getElementById('tl-phase').style.color = phase.color;
+
+            // Screen color tint
+            const overlay = document.getElementById('supernova-overlay');
+            overlay.style.display = 'block';
+            const flash = document.getElementById('supernova-flash');
+            flash.style.background = `radial-gradient(circle at center, ${phase.color}22, transparent 60%)`;
+            flash.style.opacity = prog < 0.3 ? prog / 0.3 * 0.15 : 0.15;
+        }
+
+        function animateSupernovaPhase(phase, nextPhase, prog) {
+            const lerp = (a, b, t) => a + (b - a) * t;
+            const sunScale = lerp(phase.sunScale, nextPhase.sunScale, prog);
+
+            // Scale sun
+            if (sunMesh) {
+                const s = Math.max(0.01, sunScale);
+                sunMesh.scale.setScalar(s);
+                scene.children.forEach(c => {
+                    if (c !== sunMesh && c.material && c.material.uniforms && c.material.uniforms.intensity) {
+                        c.scale.setScalar(s);
+                    }
+                });
+                // Scale corona glow objects (they're direct scene children after sun)
+            }
+
+            // Flash on first 2 phases
+            if (phase.phase <= 1 && prog < 0.2) {
+                const flash = document.getElementById('supernova-flash');
+                flash.style.opacity = 0.4 * (1 - prog / 0.2) * (phase.phase === 1 ? 1.5 : 0.5);
+            }
+
+            // Move ejecta particles
+            if (supernovaState.ejectaSystem && phase.phase >= 1) {
+                const posArr = supernovaState.ejectaSystem.geometry.attributes.position.array;
+                const velArr = supernovaState.ejectaSystem.geometry.userData.velocities;
+                const speed = phase.ejectaSpeed * (1 + prog * (nextPhase.ejectaSpeed - phase.ejectaSpeed));
+                const expansion = supernovaState.ejectaMat.uniforms.expansion;
+                expansion.value = snTimeElapsed * 0.3;
+                for (let i = 0; i < posArr.length / 3; i++) {
+                    posArr[i * 3] += velArr[i * 3] * speed * 0.08;
+                    posArr[i * 3 + 1] += velArr[i * 3 + 1] * speed * 0.08;
+                    posArr[i * 3 + 2] += velArr[i * 3 + 2] * speed * 0.08;
+                }
+                supernovaState.ejectaSystem.geometry.attributes.position.needsUpdate = true;
+                supernovaState.ejectaSystem.visible = true;
+            }
+
+            // Fling planets outward
+            if (phase.phase >= 3) {
+                planetObjects.forEach((p, i) => {
+                    const v = supernovaState.planetEjectaVel[i];
+                    const spd = phase.ejectaSpeed * 0.04 * (1 + prog);
+                    p.group.position.x += v.x * spd;
+                    p.group.position.y += v.y * spd * 0.3;
+                    p.group.position.z += v.z * spd;
+                });
+            }
+
+            // Phase 6+: fade sun, show nebula color
+            if (phase.phase >= 6) {
+                sunMesh.scale.setScalar(lerp(phase.sunScale, nextPhase.sunScale, prog));
+                if (supernovaState.ejectaMat) {
+                    supernovaState.ejectaMat.uniforms.expansion.value = Math.min(20, snTimeElapsed * 0.5);
+                }
+            }
+
+            // Phase 7: show neutron star
+            if (phase.phase >= 7) {
+                if (supernovaState.neutronStar) {
+                    supernovaState.neutronStar.visible = true;
+                    if (supernovaState.nsMat) supernovaState.nsMat.uniforms.time.value = snTimeElapsed;
+                    if (supernovaState.jetMat) supernovaState.jetMat.uniforms.time.value = snTimeElapsed;
+                    sunMesh.visible = false;
+                }
+            }
+
+            // Shockwave ring visual
+            if (phase.phase === 3 && prog < 0.5) {
+                const sw = document.getElementById('supernova-shockwave');
+                const size = Math.round(prog * Math.min(innerWidth, innerHeight) * 2);
+                sw.style.width = size + 'px'; sw.style.height = size + 'px';
+                sw.style.borderColor = `rgba(255,200,100,${0.8 * (1 - prog * 2)})`;
+            }
+        }
+
+        function resetSupernovaTimeline() {
+            clearInterval(supernovaState.tlInterval);
+
+            // Remove ejecta
+            if (supernovaState.ejectaSystem) { scene.remove(supernovaState.ejectaSystem); supernovaState.ejectaSystem = null; }
+            if (supernovaState.neutronStar) { scene.remove(supernovaState.neutronStar); supernovaState.neutronStar = null; }
+
+            // Restore sun
+            if (sunMesh) { sunMesh.scale.setScalar(1); sunMesh.visible = true; }
+
+            // Restore planets
+            planetObjects.forEach((p, i) => {
+                if (supernovaState.originalPlanetPos[i]) {
+                    p.group.position.copy(supernovaState.originalPlanetPos[i]);
+                }
+            });
+
+            supernovaState.active = false;
+            supernovaState.phase = -1;
+            snTimeElapsed = 0; snPhaseIdx = 0;
+
+            document.getElementById('supernova-overlay').style.display = 'none';
+            document.getElementById('timeline-hud').style.display = 'none';
+            document.getElementById('supernova-flash').style.opacity = 0;
+
+            S.paused = false;
+            fistChargeFrames = 0; updateFistCharge(0);
+            deactivateTimeWarp();
+            toast('SYSTEM RESTORED — SOLAR SIMULATION RESUMED');
+        }
+
+        // Screen shake
+        function doScreenShake(intensity) {
+            const body = document.body;
+            let t = 0;
+            const shake = () => {
+                if (t > 20) { body.style.transform = ''; return; }
+                const dx = (Math.random() - 0.5) * intensity * (1 - t / 20) * 20;
+                const dy = (Math.random() - 0.5) * intensity * (1 - t / 20) * 20;
+                body.style.transform = `translate(${dx}px,${dy}px)`;
+                t++; requestAnimationFrame(shake);
+            };
+            shake();
+        }
+
+        function initMediaPipe(vid) {
+            const hc = document.getElementById('hand-canvas-overlay');
+            hc.width = 180; hc.height = 130;
+            const hctx = hc.getContext('2d');
+
+            handsDetector = new Hands({
+                locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1646424915/${f}`
+            });
+            handsDetector.setOptions({
+                maxNumHands: 1,
+                modelComplexity: 1,            // use higher quality model
+                minDetectionConfidence: 0.7,
+                minTrackingConfidence: 0.6
+            });
+
+            const CONN = [[0, 1], [1, 2], [2, 3], [3, 4], [0, 5], [5, 6], [6, 7], [7, 8],
+            [0, 9], [9, 10], [10, 11], [11, 12], [0, 13], [13, 14], [14, 15], [15, 16],
+            [0, 17], [17, 18], [18, 19], [19, 20], [5, 9], [9, 13], [13, 17]];
+
+            // Gesture color per type
+            const GCOLOR = {
+                MOVE: 'rgba(0,229,255,0.8)', FIST: 'rgba(255,80,0,0.9)',
+                PINCH: 'rgba(0,230,120,0.8)', POINT: 'rgba(255,200,0,0.9)',
+                PEACE: 'rgba(180,100,255,0.8)', NONE: 'rgba(255,255,255,0.3)'
+            };
+
+            handsDetector.onResults(res => {
+                hctx.clearRect(0, 0, 180, 130);
+
+                if (!res.multiHandLandmarks || !res.multiHandLandmarks[0]) {
+                    S.gestureConf = Math.max(0, S.gestureConf - 0.06);
+                    document.getElementById('hand-cursor').style.display = 'none';
+                    applyGesture('NONE', lastRawX, lastRawY);
+                    return;
+                }
+
+                const lms = res.multiHandLandmarks[0];
+                S.gestureConf = Math.min(1, S.gestureConf + 0.12);
+
+                const gesture = classifyGesture(lms);
+                const col = GCOLOR[gesture] || GCOLOR.NONE;
+
+                // Draw connections
+                hctx.strokeStyle = col;
+                hctx.lineWidth = 1.8;
+                CONN.forEach(([a, b]) => {
+                    hctx.beginPath();
+                    hctx.moveTo(lms[a].x * 180, lms[a].y * 130);
+                    hctx.lineTo(lms[b].x * 180, lms[b].y * 130);
+                    hctx.stroke();
+                });
+
+                // Draw joints
+                lms.forEach((lm, i) => {
+                    const isTip = [4, 8, 12, 16, 20].includes(i);
+                    hctx.beginPath();
+                    hctx.fillStyle = isTip ? col : 'rgba(255,255,255,0.6)';
+                    hctx.arc(lm.x * 180, lm.y * 130, isTip ? 4 : 2.5, 0, Math.PI * 2);
+                    hctx.fill();
+                });
+
+                // Show gesture label on hand canvas
+                hctx.font = 'bold 9px monospace';
+                hctx.fillStyle = col;
+                hctx.fillText(gesture, 4, 12);
+
+                // ── Use PALM CENTER as tracking point ──
+                // Palm center = average of wrist(0) + middle MCP(9) + index MCP(5) + pinky MCP(17)
+                const palmX = (lms[0].x + lms[9].x + lms[5].x + lms[17].x) / 4;
+                const palmY = (lms[0].y + lms[9].y + lms[5].y + lms[17].y) / 4;
+
+                // Draw palm center indicator
+                hctx.beginPath();
+                hctx.strokeStyle = col; hctx.lineWidth = 1.5;
+                hctx.arc(palmX * 180, palmY * 130, 7, 0, Math.PI * 2);
+                hctx.stroke();
+
+                // Draw velocity arrow for MOVE gesture
+                if (gesture === 'MOVE') {
+                    const arrowX = palmX * 180, arrowY = palmY * 130;
+                    const dx = SX.vel * 180 * 20, dy = SY.vel * 130 * 20;
+                    if (Math.abs(dx) + Math.abs(dy) > 3) {
+                        hctx.beginPath();
+                        hctx.strokeStyle = 'rgba(0,229,255,0.9)'; hctx.lineWidth = 2;
+                        hctx.moveTo(arrowX, arrowY);
+                        hctx.lineTo(arrowX + dx, arrowY + dy);
+                        hctx.stroke();
+                    }
+                }
+
+                // Update big hand cursor on main viewport (mirrored palm → screen coords)
+                const hcEl = document.getElementById('hand-cursor');
+                const hcDot = document.getElementById('hand-cursor-dot');
+                // palmX from mediapipe is in [0,1] where 0=left edge of camera
+                // because video is mirrored (scaleX(-1)), flip X for correct screen position
+                const screenX = (1 - palmX) * innerWidth;
+                const screenY = palmY * innerHeight;
+                hcEl.style.display = 'block';
+                hcEl.style.left = screenX + 'px';
+                hcEl.style.top = screenY + 'px';
+                // Color by gesture
+                const gesColor = {
+                    MOVE: 'rgba(0,229,255,0.8)', FIST: 'rgba(255,80,0,0.9)',
+                    PINCH: 'rgba(0,230,120,0.8)', POINT: 'rgba(255,200,0,0.9)',
+                    PEACE: 'rgba(180,100,255,0.8)'
+                };
+                const gc = gesColor[gesture] || 'rgba(0,229,255,0.5)';
+                hcEl.style.borderColor = gc;
+                hcEl.style.boxShadow = `0 0 24px ${gc}, 0 0 60px ${gc.replace('0.8', '0.2').replace('0.9', '0.2')}`;
+                hcDot.style.background = gc;
+
+                // Send palm center to gesture processor
+                applyGesture(gesture, palmX, palmY);
+            });
+
+            const process = async () => {
+                if (!handIsTracking) return;
+                if (vid.readyState >= 2) await handsDetector.send({ image: vid });
+                requestAnimationFrame(process);
+            };
+            process();
+        }
+
+        // ── Optical flow fallback (no MediaPipe) ─────────────────────
+        function startMotionFallback(vid) {
+            const off = document.createElement('canvas'); off.width = 64; off.height = 48;
+            const octx = off.getContext('2d');
+            let prev = null;
+            let fbSmX = 0.5, fbSmY = 0.5;
+            toast('📷 MOTION FALLBACK — Move hand in front of camera');
+
+            const tick = () => {
+                if (!handIsTracking) return;
+                octx.drawImage(vid, 0, 0, 64, 48);
+                const curr = octx.getImageData(0, 0, 64, 48).data;
+                if (prev) {
+                    let wx = 0, wy = 0, cnt = 0;
+                    for (let y = 0; y < 48; y++) for (let x = 0; x < 64; x++) {
+                        const i = (y * 64 + x) * 4;
+                        const diff = Math.abs(curr[i] - prev[i])
+                            + Math.abs(curr[i + 1] - prev[i + 1])
+                            + Math.abs(curr[i + 2] - prev[i + 2]);
+                        if (diff > 20) { wx += x; wy += y; cnt++; }
+                    }
+                    if (cnt > 30) {
+                        // Flip X because webcam is mirrored
+                        const rx = (64 - wx / cnt) / 64;
+                        const ry = (wy / cnt) / 48;
+                        fbSmX = fbSmX * 0.7 + rx * 0.3;
+                        fbSmY = fbSmY * 0.7 + ry * 0.3;
+                        S.gestureConf = 0.75;
+                        applyGesture('MOVE', fbSmX, fbSmY);
+                    } else {
+                        S.gestureConf = Math.max(0, S.gestureConf - 0.04);
+                        applyGesture('NONE', fbSmX, fbSmY);
+                    }
+                }
+                prev = curr.slice();
+                setTimeout(tick, 50); // ~20fps fallback
+            };
+            tick();
+        }
+
+        // ─────────────────────────────────────────────────────────────
+        //  LOADING SEQUENCE
+        // ─────────────────────────────────────────────────────────────
+        const LOAD_MSGS = [
+            'Initializing WebGL2 renderer...',
+            'Building procedural textures...',
+            'Generating 20,000 star field...',
+            'Compiling GLSL shaders...',
+            'Calibrating orbital mechanics...',
+            'Applying Rayleigh scattering...',
+            'Constructing asteroid belt...',
+            'Loading planetary databases...',
+            'Engaging time dilation...',
+            'SOLARIS NEXUS READY.',
+        ];
+
+        function startLoadingSequence() {
+            const fill = document.getElementById('loader-fill');
+            const txt = document.getElementById('loader-text');
+            let i = 0;
+            const total = LOAD_MSGS.length;
+            const step = () => {
+                if (i >= total) { showEnterBtn(); return; }
+                fill.style.width = ((i + 1) / total * 100) + '%';
+                txt.textContent = LOAD_MSGS[i];
+                i++;
+                setTimeout(step, 180 + Math.random() * 120);
+            };
+            setTimeout(step, 600);
+        }
+
+        function showEnterBtn() {
+            const btn = document.getElementById('intro-enter-btn');
+            btn.style.display = 'block';
+            btn.style.animation = 'fadeUp 0.8s ease forwards';
+        }
+
+        document.getElementById('intro-enter-btn').addEventListener('click', () => {
+            const intro = document.getElementById('intro-screen');
+            intro.style.transition = 'opacity 1.5s';
+            intro.style.opacity = '0';
+            // Cinematic fly-in
+            S.camR = 500; S.camTheta = 0.2; S.camPhi = 0.8;
+            S.camTargetR = 160; S.camTargetTheta = 0.3; S.camTargetPhi = 1.1;
+            setTimeout(() => { intro.style.display = 'none'; }, 1500);
+            toast('WELCOME TO SOLARIS NEXUS');
+        });
+
+        // ─────────────────────────────────────────────────────────────
+        //  WINDOW RESIZE
+        // ─────────────────────────────────────────────────────────────
+        window.addEventListener('resize', () => {
+            renderer.setSize(innerWidth, innerHeight);
+            camera.aspect = innerWidth / innerHeight;
+            camera.updateProjectionMatrix();
+        });
+
+        // ─────────────────────────────────────────────────────────────
+        //  BOOT
+        // ─────────────────────────────────────────────────────────────
+        buildScene();
+        animate();
+        startLoadingSequence();
+
+        // Set initial button states
+        document.getElementById('btn-orbits').classList.add('active');
+
+        console.log('%c🌌 SOLARIS NEXUS — Solar System Engine', 'color:#00e5ff;font-size:16px;font-weight:bold');
+        console.log('%cKeys: Arrows=camera  Space=pause  R=reset  T=top  O=orbits  L=labels  P=postfx  1-8=planets', 'color:#666');
+    </script>
+</body>
+
+</html>
